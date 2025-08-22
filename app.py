@@ -148,16 +148,18 @@ FROM tbl_segundometro_semana;
 @app.route("/download")
 def download_excel():
     try:
-        # Ejecuta tu merge y obtiene DataFrame
+        # Ejecuta tu función de merge
         df = merge_aws_google_batch()
+        if df.empty:
+            return jsonify({"message": "No hay datos para generar el archivo"}), 404
 
-        # Convierte a Excel en memoria
+        # Genera el Excel en memoria
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name='Reporte')
         output.seek(0)
 
-        # Envía archivo al cliente
+        # Devuelve como archivo descargable
         return send_file(
             output,
             as_attachment=True,
@@ -165,8 +167,10 @@ def download_excel():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
     except Exception as e:
+        # Devuelve error JSON para poder verlo en la consola del navegador
+        import traceback
+        print(traceback.format_exc())
         return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
-
 # ---------------------------
 # LOGOUT
 # ---------------------------

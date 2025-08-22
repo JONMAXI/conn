@@ -58,7 +58,10 @@ button:hover {
 document.getElementById('downloadBtn').addEventListener('click', async () => {
     try {
         const res = await fetch('/download');
-        if (!res.ok) throw new Error('Error en la descarga');
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text);
+        }
 
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
