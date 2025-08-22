@@ -11,26 +11,33 @@ app = Flask(__name__)
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
-    if request.method == "POST":
-        username = request.form['username']
-        password = request.form['password']
+    try:
+        if request.method == "POST":
+            username = request.form['username']
+            password = request.form['password']
 
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, nombre_completo FROM usuarios WHERE username=%s AND password=%s",
-            (username, password)
-        )
-        user = cursor.fetchone()
-        cursor.close()
-        close_connection(conn)
+            conn = get_connection()
+            cursor = conn.cursor(dictionary=True)  # <-- clave
+            cursor.execute(
+                "SELECT id, nombre_completo FROM usuarios WHERE username=%s AND password=%s",
+                (username, password)
+            )
+            user = cursor.fetchone()
+            cursor.close()
+            close_connection(conn)
 
-        if user:
-            return redirect(url_for("dashboard"))
-        else:
-            error = "Usuario o contraseña incorrectos"
+            if user:
+                return redirect(url_for("dashboard"))
+            else:
+                error = "Usuario o contraseña incorrectos"
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        error = "Error interno en el servidor"
 
     return render_template("login.html", error=error)
+
 
 # ---------- DASHBOARD ----------
 @app.route("/dashboard")
