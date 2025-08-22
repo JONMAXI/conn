@@ -155,32 +155,56 @@ def download_excel():
         page = 1
         output = BytesIO()
 
-        # Creamos el ExcelWriter usando openpyxl (no necesita instalación extra en Cloud Run)
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            first_page = True
+        # --- Extraemos último corte para el nombre dinámico ---
+        conn = get_connection_google()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT MAX(
+                CASE
+                    -- Aquí va toda tu lista de WHEN como en /index
+                    WHEN Dias_mora_Viernes_14_30 IS NOT NULL THEN 'Dias_mora_Viernes_14_30'
+                    -- etc.
+                    ELSE NULL
+                END
+            ) AS ultima_columna_llena
+            FROM tbl_segundometro_semana
+        """)
+        ultima_columna = cursor.fetchone()[0]
+        cursor.close()
+        close_connection_google(conn)
+
+        if ultima_columna:
+            corte_name = "_".join(ultima_columna.split("_")[2:])  # 'Viernes_14_30'
+        else:
+            corte_name = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
+
+        filename = f"Reporte_Corte_{corte_name}.xlsx"
+
+        print("🔹 Procesando archivo...")
+
+        # --- Creamos el ExcelWriter ---
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             while True:
+                print(f"🔹 Procesando batch {page}...")
                 df = merge_aws_google_batch(batch_size=batch_size, page=page)
                 if df.empty:
-                    break  # terminamos cuando no hay más registros
+                    break
 
-                # Escribimos al Excel
                 startrow = (page - 1) * batch_size
-                df.to_excel(
-                    writer,
-                    index=False,
-                    sheet_name='Reporte',
-                    startrow=startrow if not first_page else 0,
-                    header=first_page
-                )
+                df.to_excel(writer, index=False, sheet_name='Reporte', startrow=startrow if page > 1 else 0, header=(page==1))
 
-                first_page = False
                 page += 1
 
+            print("🔹 Construyendo archivo final...")
+
+            writer.save()
+
         output.seek(0)
+        print(f"✅ Archivo listo: {filename}")
         return send_file(
             output,
             as_attachment=True,
-            download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            download_name=filename,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
@@ -188,7 +212,6 @@ def download_excel():
         import traceback
         print(traceback.format_exc())
         return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
-
 # ---------------------------
 # LOGOUT
 # ---------------------------
