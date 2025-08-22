@@ -2,6 +2,7 @@ import pandas as pd
 from db_connection import get_connection, close_connection          # AWS
 from db_connection_google import get_connection_google, close_connection_google  # Google
 
+
 def merge_aws_google_batch(batch_size=5000, page=1):
     """
     Obtiene datos de Google Cloud SQL y AWS RDS en batches para evitar saturar Cloud Run.
@@ -34,7 +35,6 @@ def merge_aws_google_batch(batch_size=5000, page=1):
 
     # --- Conexión AWS RDS ---
     conn_aws = get_connection()
-    # Traer solo los registros de AWS que coinciden con los id_credit del batch
     ids_chunk = tuple(df_google['id_credit'].astype(str).tolist())
     if len(ids_chunk) == 1:
         ids_chunk = f"('{ids_chunk[0]}')"  # SQL necesita paréntesis si solo 1
@@ -63,8 +63,18 @@ def merge_aws_google_batch(batch_size=5000, page=1):
                          right_on='id_oferta',
                          how='left')
 
-    # --- Eliminar columnas duplicadas ---
     if 'id_oferta' in df_merged.columns:
         df_merged.drop(columns=['id_oferta'], inplace=True)
 
     return df_merged
+
+
+# ------------------------------
+# Alias de compatibilidad
+# ------------------------------
+def merge_aws_google():
+    """
+    Alias para compatibilidad con llamadas antiguas.
+    Ejecuta merge_aws_google_batch con batch_size=5000 en la página 1.
+    """
+    return merge_aws_google_batch(batch_size=5000, page=1)
