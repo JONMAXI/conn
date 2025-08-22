@@ -149,7 +149,7 @@ FROM tbl_segundometro_semana;
 def download_excel():
     try:
         # Ejecuta tu función de merge
-        df = merge_aws_google_batch()
+        df = merge_aws_google()
         if df.empty:
             return jsonify({"message": "No hay datos para generar el archivo"}), 404
 
