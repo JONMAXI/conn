@@ -155,14 +155,25 @@ def download_excel():
         page = 1
         output = BytesIO()
 
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Creamos el ExcelWriter usando openpyxl (no necesita instalación extra en Cloud Run)
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            first_page = True
             while True:
                 df = merge_aws_google_batch(batch_size=batch_size, page=page)
                 if df.empty:
-                    break
+                    break  # terminamos cuando no hay más registros
 
-                sheet_name = f'Reporte_{page}'
-                df.to_excel(writer, index=False, sheet_name=sheet_name)
+                # Escribimos al Excel
+                startrow = (page - 1) * batch_size
+                df.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name='Reporte',
+                    startrow=startrow if not first_page else 0,
+                    header=first_page
+                )
+
+                first_page = False
                 page += 1
 
         output.seek(0)
@@ -177,6 +188,7 @@ def download_excel():
         import traceback
         print(traceback.format_exc())
         return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
+
 # ---------------------------
 # LOGOUT
 # ---------------------------
