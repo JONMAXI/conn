@@ -1,31 +1,35 @@
-from flask import Flask, jsonify
-from db_connection import get_connection, close_connection
+import os
+import mysql.connector
+from mysql.connector import Error
 
-app = Flask(__name__)
+# ------------------------------
+# CONFIGURACIÓN DE BASE DE DATOS
+# ------------------------------
+DB_HOST = os.getenv("DB_HOST", "maxi-base.cluster-csa4gsaishoe.us-east-1.rds.amazonaws.com")
+DB_USER = os.getenv("DB_USER", "jesus.ruvalcaba")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "tu_password")  # ⚠️ Configura en Cloud Run
+DB_NAME = os.getenv("DB_NAME", "maxi-prod")
+DB_PORT = int(os.getenv("DB_PORT", 3306))
 
-@app.route("/")
-def index():
-    return jsonify({"status": "ok", "message": "🚀 Servicio en Cloud Run funcionando!"})
-
-@app.route("/pingdb")
-def pingdb():
-    """Endpoint de prueba para verificar conexión a MySQL"""
-    conn = get_connection()
-    if not conn:
-        return jsonify({"status": "error", "message": "No se pudo conectar a la base de datos"}), 500
-
+def get_connection():
+    """Crea y devuelve una conexión a la base de datos MySQL."""
     try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT NOW();")
-        result = cursor.fetchone()
-        cursor.close()
-        close_connection(conn)
-        return jsonify({"status": "ok", "db_time": str(result[0])})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        connection = mysql.connector.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
+            port=DB_PORT
+        )
+        if connection.is_connected():
+            print("✅ Conexión exitosa a la base de datos")
+            return connection
+    except Error as e:
+        print(f"❌ Error al conectar a MySQL: {e}")
+        return None
 
-if __name__ == "__main__":
-    # Cloud Run asigna el puerto dinámicamente en $PORT
-    import os
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+def close_connection(conn):
+    """Cierra una conexión existente a MySQL."""
+    if conn and conn.is_connected():
+        conn.close()
+        print("🔒 Conexión cerrada")
