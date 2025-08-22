@@ -1,30 +1,56 @@
 # app.py
-from flask import Flask, jsonify, render_template, send_file
-from db_connection import get_connection, close_connection
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from db_connection_google import get_connection_google, close_connection_google
-from merge_aws_google import merge_aws_google_batch
-import pandas as pd
-from io import BytesIO
 import os
-import traceback
 from datetime import datetime
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")  # Para sesiones
 
-# ----------------------
-# Endpoint raíz: resumen
-# ----------------------
-@app.route("/")
-def index():
-    try:
+# ---------------------------
+# LOGIN
+# ---------------------------
+@app.route("/", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
         conn = get_connection_google()
-        if not conn:
-            return jsonify({"status": "error", "message": "No se pudo conectar a la base de datos"}), 500
-
         cursor = conn.cursor()
-        # Consulta último corte
-        cursor.execute("""
-            SELECT MAX(
+        cursor.execute(
+            "SELECT id, username, password, nombre_completo FROM usuarios WHERE username=%s AND password=%s",
+            (username, password)
+        )
+        user = cursor.fetchone()
+        cursor.close()
+        close_connection_google(conn)
+
+        if user:
+            # Guardamos info en sesión
+            session["user_id"] = user[0]
+            session["username"] = user[1]
+            session["nombre_completo"] = user[3]
+            return redirect(url_for("index"))
+        else:
+            return render_template("login.html", error="Usuario o contraseña incorrectos")
+    else:
+        return render_template("login.html", error=None)
+
+# ---------------------------
+# INDEX (resumen último corte)
+# ---------------------------
+@app.route("/index")
+def index():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_connection_google()
+    cursor = conn.cursor()
+
+    # Consulta último corte
+    cursor.execute("""
+       SELECT MAX(
     CASE
         -- Domingo
         WHEN Dias_mora_Domingo_23_50 IS NOT NULL THEN 'Dias_mora_Domingo_23_50'
@@ -102,54 +128,32 @@ def index():
 ) AS ultima_columna_llena
 FROM tbl_segundometro_semana;
 
-        """)
-        ultima_columna = cursor.fetchone()[0]
-        cursor.close()
-        close_connection(conn)
+    """)
+    ultima_columna = cursor.fetchone()[0]
+    cursor.close()
+    close_connection_google(conn)
 
-        return render_template(
-            "index.html",
-            ultima_columna=ultima_columna,
-            hora_consulta=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            status="OK"
-        )
+    hora_consulta = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    status = "Activo"
 
-    except Exception as e:
-        print(traceback.format_exc())
-        return jsonify({"status": "error", "message": str(e)}), 500
+    return render_template(
+        "index.html",
+        ultima_columna=ultima_columna,
+        hora_consulta=hora_consulta,
+        status=status
+    )
 
+# ---------------------------
+# LOGOUT
+# ---------------------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
-# ----------------------------------
-# Endpoint de descarga de Excel
-# ----------------------------------
-@app.route("/download")
-def download_excel():
-    try:
-        # Ejecuta merge entre Google y AWS
-        df = merge_aws_google_batch()
-
-        # Genera Excel en memoria
-        output = BytesIO()
-        df.to_excel(output, index=False)
-        output.seek(0)
-
-        filename = f"reporte_segundometro_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-
-        return send_file(
-            output,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            download_name=filename,
-            as_attachment=True
-        )
-
-    except Exception as e:
-        print(traceback.format_exc())
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-
-# ----------------------
-# Main local
-# ----------------------
+# ---------------------------
+# Main
+# ---------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
