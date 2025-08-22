@@ -6,6 +6,8 @@ from datetime import datetime
 from merge_aws_google import merge_aws_google_batch
 from io import BytesIO
 import pandas as pd
+from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")  # Para sesiones
@@ -134,7 +136,9 @@ def index():
     else:
         ultima_columna = "Reporte_Corte_Desconocido"
 
-    hora_consulta = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Zona horaria Ciudad de México
+    cdmx_tz = pytz.timezone("America/Mexico_City")
+    hora_consulta = datetime.now(cdmx_tz).strftime("%Y-%m-%d %H:%M:%S")
     status = "Activo"
 
     # Guardamos el nombre dinámico en sesión para la descarga
