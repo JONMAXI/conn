@@ -155,124 +155,32 @@ def download_excel():
         page = 1
         output = BytesIO()
 
-        # --- Extraemos último corte para el nombre dinámico ---
-        conn = get_connection_google()
-        cursor = conn.cursor()
-        cursor.execute("""
-           SELECT MAX(
-    CASE
-        -- Domingo
-        WHEN Dias_mora_Domingo_23_50 IS NOT NULL THEN 'Dias_mora_Domingo_23_50'
-        WHEN Dias_mora_Domingo_20_30 IS NOT NULL THEN 'Dias_mora_Domingo_20_30'
-        WHEN Dias_mora_Domingo_18_30 IS NOT NULL THEN 'Dias_mora_Domingo_18_30'
-        WHEN Dias_mora_Domingo_16_30 IS NOT NULL THEN 'Dias_mora_Domingo_16_30'
-        WHEN Dias_mora_Domingo_14_30 IS NOT NULL THEN 'Dias_mora_Domingo_14_30'
-        WHEN Dias_mora_Domingo_13_30 IS NOT NULL THEN 'Dias_mora_Domingo_13_30'
-        WHEN Dias_mora_Domingo_11_30 IS NOT NULL THEN 'Dias_mora_Domingo_11_30'
-        WHEN Dias_mora_Domingo_09_30 IS NOT NULL THEN 'Dias_mora_Domingo_09_30'
-        WHEN Dias_mora_Domingo_07_30 IS NOT NULL THEN 'Dias_mora_Domingo_07_30'
+        # Creamos el ExcelWriter usando openpyxl (no necesita instalación extra en Cloud Run)
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            first_page = True
+            while True:
+                df = merge_aws_google_batch(batch_size=batch_size, page=page)
+                if df.empty:
+                    break  # terminamos cuando no hay más registros
 
-        -- Sábado
-        WHEN Dias_mora_Sabado_20_30 IS NOT NULL THEN 'Dias_mora_Sabado_20_30'
-        WHEN Dias_mora_Sabado_18_30 IS NOT NULL THEN 'Dias_mora_Sabado_18_30'
-        WHEN Dias_mora_Sabado_16_30 IS NOT NULL THEN 'Dias_mora_Sabado_16_30'
-        WHEN Dias_mora_Sabado_14_30 IS NOT NULL THEN 'Dias_mora_Sabado_14_30'
-        WHEN Dias_mora_Sabado_13_30 IS NOT NULL THEN 'Dias_mora_Sabado_13_30'
-        WHEN Dias_mora_Sabado_11_30 IS NOT NULL THEN 'Dias_mora_Sabado_11_30'
-        WHEN Dias_mora_Sabado_09_30 IS NOT NULL THEN 'Dias_mora_Sabado_09_30'
-        WHEN Dias_mora_Sabado_07_30 IS NOT NULL THEN 'Dias_mora_Sabado_07_30'
+                # Escribimos al Excel
+                startrow = (page - 1) * batch_size
+                df.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name='Reporte',
+                    startrow=startrow if not first_page else 0,
+                    header=first_page
+                )
 
-        -- Viernes
-        WHEN Dias_mora_Viernes_20_30 IS NOT NULL THEN 'Dias_mora_Viernes_20_30'
-        WHEN Dias_mora_Viernes_18_30 IS NOT NULL THEN 'Dias_mora_Viernes_18_30'
-        WHEN Dias_mora_Viernes_16_30 IS NOT NULL THEN 'Dias_mora_Viernes_16_30'
-        WHEN Dias_mora_Viernes_14_30 IS NOT NULL THEN 'Dias_mora_Viernes_14_30'
-        WHEN Dias_mora_Viernes_13_30 IS NOT NULL THEN 'Dias_mora_Viernes_13_30'
-        WHEN Dias_mora_Viernes_11_30 IS NOT NULL THEN 'Dias_mora_Viernes_11_30'
-        WHEN Dias_mora_Viernes_09_30 IS NOT NULL THEN 'Dias_mora_Viernes_09_30'
-        WHEN Dias_mora_Viernes_07_30 IS NOT NULL THEN 'Dias_mora_Viernes_07_30'
-
-        -- Jueves
-        WHEN Dias_mora_Jueves_20_30 IS NOT NULL THEN 'Dias_mora_Jueves_20_30'
-        WHEN Dias_mora_Jueves_18_30 IS NOT NULL THEN 'Dias_mora_Jueves_18_30'
-        WHEN Dias_mora_Jueves_16_30 IS NOT NULL THEN 'Dias_mora_Jueves_16_30'
-        WHEN Dias_mora_Jueves_14_30 IS NOT NULL THEN 'Dias_mora_Jueves_14_30'
-        WHEN Dias_mora_Jueves_13_30 IS NOT NULL THEN 'Dias_mora_Jueves_13_30'
-        WHEN Dias_mora_Jueves_11_30 IS NOT NULL THEN 'Dias_mora_Jueves_11_30'
-        WHEN Dias_mora_Jueves_09_30 IS NOT NULL THEN 'Dias_mora_Jueves_09_30'
-        WHEN Dias_mora_Jueves_07_30 IS NOT NULL THEN 'Dias_mora_Jueves_07_30'
-
-        -- Miércoles
-        WHEN Dias_mora_Miercoles_20_30 IS NOT NULL THEN 'Dias_mora_Miercoles_20_30'
-        WHEN Dias_mora_Miercoles_18_30 IS NOT NULL THEN 'Dias_mora_Miercoles_18_30'
-        WHEN Dias_mora_Miercoles_16_30 IS NOT NULL THEN 'Dias_mora_Miercoles_16_30'
-        WHEN Dias_mora_Miercoles_14_30 IS NOT NULL THEN 'Dias_mora_Miercoles_14_30'
-        WHEN Dias_mora_Miercoles_13_30 IS NOT NULL THEN 'Dias_mora_Miercoles_13_30'
-        WHEN Dias_mora_Miercoles_11_30 IS NOT NULL THEN 'Dias_mora_Miercoles_11_30'
-        WHEN Dias_mora_Miercoles_09_30 IS NOT NULL THEN 'Dias_mora_Miercoles_09_30'
-        WHEN Dias_mora_Miercoles_07_30 IS NOT NULL THEN 'Dias_mora_Miercoles_07_30'
-
-        -- Martes
-        WHEN Dias_mora_Martes_20_30 IS NOT NULL THEN 'Dias_mora_Martes_20_30'
-        WHEN Dias_mora_Martes_18_30 IS NOT NULL THEN 'Dias_mora_Martes_18_30'
-        WHEN Dias_mora_Martes_16_30 IS NOT NULL THEN 'Dias_mora_Martes_16_30'
-        WHEN Dias_mora_Martes_14_30 IS NOT NULL THEN 'Dias_mora_Martes_14_30'
-        WHEN Dias_mora_Martes_13_30 IS NOT NULL THEN 'Dias_mora_Martes_13_30'
-        WHEN Dias_mora_Martes_11_30 IS NOT NULL THEN 'Dias_mora_Martes_11_30'
-        WHEN Dias_mora_Martes_09_30 IS NOT NULL THEN 'Dias_mora_Martes_09_30'
-        WHEN Dias_mora_Martes_07_30 IS NOT NULL THEN 'Dias_mora_Martes_07_30'
-
-        -- Lunes
-        WHEN Dias_mora_Lunes_20_30 IS NOT NULL THEN 'Dias_mora_Lunes_20_30'
-        WHEN Dias_mora_Lunes_18_30 IS NOT NULL THEN 'Dias_mora_Lunes_18_30'
-        WHEN Dias_mora_Lunes_16_30 IS NOT NULL THEN 'Dias_mora_Lunes_16_30'
-        WHEN Dias_mora_Lunes_14_30 IS NOT NULL THEN 'Dias_mora_Lunes_14_30'
-        WHEN Dias_mora_Lunes_13_30 IS NOT NULL THEN 'Dias_mora_Lunes_13_30'
-        WHEN Dias_mora_Lunes_11_30 IS NOT NULL THEN 'Dias_mora_Lunes_11_30'
-        WHEN Dias_mora_Lunes_09_30 IS NOT NULL THEN 'Dias_mora_Lunes_09_30'
-        WHEN Dias_mora_Lunes_07_30 IS NOT NULL THEN 'Dias_mora_Lunes_07_30'
-
-        ELSE NULL
-    END
-) AS ultima_columna_llena
-FROM tbl_segundometro_semana;
-
-        """)
-        ultima_columna = cursor.fetchone()[0]
-        cursor.close()
-        close_connection_google(conn)
-
-        if ultima_columna:
-            corte_name = "_".join(ultima_columna.split("_")[2:])  # 'Viernes_14_30'
-        else:
-            corte_name = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
-
-        filename = f"Reporte_Corte_{corte_name}.xlsx"
-
-        print("🔹 Procesando archivo...")
-
-     # --- Creamos el ExcelWriter con openpyxl ---
-with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    while True:
-        print(f"🔹 Procesando batch {page}...")
-        df = merge_aws_google_batch(batch_size=batch_size, page=page)
-        if df.empty:
-            break
-
-        startrow = (page - 1) * batch_size
-        df.to_excel(writer, index=False, sheet_name='Reporte', startrow=startrow if page > 1 else 0, header=(page==1))
-
-        page += 1
-
-    print("🔹 Construyendo archivo final...")
-
+                first_page = False
+                page += 1
 
         output.seek(0)
-        print(f"✅ Archivo listo: {filename}")
         return send_file(
             output,
             as_attachment=True,
-            download_name=filename,
+            download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
@@ -280,6 +188,7 @@ with pd.ExcelWriter(output, engine='openpyxl') as writer:
         import traceback
         print(traceback.format_exc())
         return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
+
 # ---------------------------
 # LOGOUT
 # ---------------------------
