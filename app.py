@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from db_connection_google import get_connection_google, close_connection_google
 import os
 from datetime import datetime
+from merge_aws_google import merge_aws_google_batch
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")  # Para sesiones
@@ -148,29 +149,26 @@ FROM tbl_segundometro_semana;
 @app.route("/download")
 def download_excel():
     try:
-        # Ejecuta tu función de merge
-        df =  merge_aws_google_batch(batch_size=5000, page=1)
+        df = merge_aws_google_batch(batch_size=5000, page=1)
         if df.empty:
             return jsonify({"message": "No hay datos para generar el archivo"}), 404
 
-        # Genera el Excel en memoria
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False, sheet_name='Reporte')
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Reporte")
         output.seek(0)
 
-        # Devuelve como archivo descargable
         return send_file(
             output,
             as_attachment=True,
             download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     except Exception as e:
-        # Devuelve error JSON para poder verlo en la consola del navegador
         import traceback
         print(traceback.format_exc())
         return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
+
 # ---------------------------
 # LOGOUT
 # ---------------------------
