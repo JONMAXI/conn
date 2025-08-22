@@ -251,22 +251,21 @@ FROM tbl_segundometro_semana;
 
         print("🔹 Procesando archivo...")
 
-        # --- Creamos el ExcelWriter ---
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            while True:
-                print(f"🔹 Procesando batch {page}...")
-                df = merge_aws_google_batch(batch_size=batch_size, page=page)
-                if df.empty:
-                    break
+     # --- Creamos el ExcelWriter con openpyxl ---
+with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    while True:
+        print(f"🔹 Procesando batch {page}...")
+        df = merge_aws_google_batch(batch_size=batch_size, page=page)
+        if df.empty:
+            break
 
-                startrow = (page - 1) * batch_size
-                df.to_excel(writer, index=False, sheet_name='Reporte', startrow=startrow if page > 1 else 0, header=(page==1))
+        startrow = (page - 1) * batch_size
+        df.to_excel(writer, index=False, sheet_name='Reporte', startrow=startrow if page > 1 else 0, header=(page==1))
 
-                page += 1
+        page += 1
 
-            print("🔹 Construyendo archivo final...")
+    print("🔹 Construyendo archivo final...")
 
-            writer.save()
 
         output.seek(0)
         print(f"✅ Archivo listo: {filename}")
