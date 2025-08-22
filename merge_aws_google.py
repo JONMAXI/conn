@@ -11,8 +11,8 @@ def merge_aws_google_batch():
         offset = 0
         while True:
             query = f"""
-                SELECT KT AS id_original, Celular AS Telefono, id_cliente AS mkm,
-                       id_credit, nombre_cliente AS nombre, 1 AS pagos_vencidos,
+                SELECT KT AS id_original, Celular AS Telefono, Id_cliente AS mkm,
+                       Id_credito as id_credit, nombre_cliente AS nombre, 1 AS pagos_vencidos,
                        saldo_vencido_inicio AS monto_vencido,
                        '' AS bucket, '' AS fecha_de_pago, '' AS telefono_1,
                        'Transferencia' AS tipoo_de_pago, Referencia_stp AS clabe,
