@@ -67,6 +67,8 @@ button:hover {
 </div>
 
 <script>
+const nombreArchivo = "{{ ultima_columna }}";  // tomado de Flask
+
 document.getElementById('downloadBtn').addEventListener('click', async () => {
     const statusMsg = document.getElementById('statusMsg');
     statusMsg.style.display = 'block';
@@ -85,13 +87,13 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `reporte_segundometro_${new Date().toISOString().replace(/[:.]/g,'_')}.xlsx`;
+        a.download = nombreArchivo + ".xlsx";  // usamos el nombre dinámico
         document.body.appendChild(a);
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
 
-        statusMsg.style.display = 'none'; // ocultamos el mensaje al finalizar
+        statusMsg.style.display = 'none';
     } catch (err) {
         statusMsg.textContent = '';
         alert('Error al descargar el archivo: ' + err.message);
