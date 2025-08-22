@@ -3,3 +3,4 @@ numpy==1.26.4
 pandas==2.1.1
 mysql-connector-python==8.1.0
 pymysql==1.1.1
+openpyxl
