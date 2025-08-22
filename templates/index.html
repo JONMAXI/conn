@@ -46,18 +46,36 @@ button:hover {
 </style>
 </head>
 <body>
+<!-- Barra superior -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">Reporte Segundometro</a>
+    <div class="d-flex">
+      <a href="/logout" class="btn btn-outline-danger">Salir</a>
+    </div>
+  </div>
+</nav>
+
 <div class="container">
     <h2>Reporte Segundometro Ultimo Corte</h2>
-    <p><strong>Último corte:</strong> {{ ultima_columna }}</p>
-    <p><strong>Hora de consulta:</strong> {{ hora_consulta }}</p>
-    <p><strong>Estatus:</strong> {{ status }}</p>
+    <hr>
+    <p><strong>Último corte:</strong> Dias_mora_Viernes_14_30</p>
+    <p><strong>Hora de consulta:</strong> 2025-08-22 20:57:25</p>
+    <p><strong>Estatus:</strong> Activo</p>
     <button id="downloadBtn">Descargar archivo</button>
+    <p id="statusMsg" style="display:none; margin-top:15px; color:#007BFF;"></p>
 </div>
 
 <script>
 document.getElementById('downloadBtn').addEventListener('click', async () => {
+    const statusMsg = document.getElementById('statusMsg');
+    statusMsg.style.display = 'block';
+    statusMsg.textContent = 'Procesando archivo...';
+
     try {
         const res = await fetch('/download');
+        statusMsg.textContent = 'Construyendo archivo...';
+
         if (!res.ok) {
             const text = await res.text();
             throw new Error(text);
@@ -72,7 +90,10 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+
+        statusMsg.style.display = 'none'; // ocultamos el mensaje al finalizar
     } catch (err) {
+        statusMsg.textContent = '';
         alert('Error al descargar el archivo: ' + err.message);
     }
 });
