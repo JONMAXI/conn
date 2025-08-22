@@ -142,6 +142,30 @@ FROM tbl_segundometro_semana;
         hora_consulta=hora_consulta,
         status=status
     )
+# ---------------------------
+# DOWNLOAD
+# ---------------------------
+@app.route("/download")
+def download_excel():
+    try:
+        # Ejecuta tu merge y obtiene DataFrame
+        df = merge_aws_google_batch()
+
+        # Convierte a Excel en memoria
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Reporte')
+        output.seek(0)
+
+        # Envía archivo al cliente
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except Exception as e:
+        return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
 
 # ---------------------------
 # LOGOUT
@@ -150,6 +174,8 @@ FROM tbl_segundometro_semana;
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
 
 # ---------------------------
 # Main
