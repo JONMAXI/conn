@@ -1,22 +1,23 @@
-# Dockerfile
+# Imagen base oficial de Python 3.11 slim
 FROM python:3.11-slim
 
+# Evitar mensajes interactivos y locales
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias
-RUN apt-get update && apt-get install -y \
-    gcc \
-    default-libmysqlclient-dev \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
+# Copiar requirements e instalar dependencias
 COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
+# Copiar el resto de la app
 COPY . .
 
-# Cloud Run expone el puerto en la env var $PORT
-ENV PORT=8080
+# Puerto que Cloud Run expondrá
+ENV PORT 8080
 
-# Gunicorn recomendado para producción
-CMD exec gunicorn --bind :$PORT --workers 2 --threads 8 --timeout 0 app:app
+# Comando para correr la app
+CMD ["python", "app.py"]
