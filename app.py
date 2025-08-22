@@ -1,155 +1,118 @@
-# app.py
-from flask import Flask, jsonify, render_template, send_file
-from db_connection import get_connection, close_connection
-from db_connection_google import get_connection_google, close_connection_google
-from merge_aws_google import merge_aws_google_batch
+from flask import Flask, render_template, request, redirect, url_for, session, send_file
+import mysql.connector
 import pandas as pd
 from io import BytesIO
-import os
-import traceback
-from datetime import datetime
+from merge_aws_google import merge_aws_google_batch  # tu función de merge
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__)
+app.secret_key = "supersecretkey123"  # necesario para sesiones
 
-# ----------------------
-# Endpoint raíz: resumen
-# ----------------------
-@app.route("/")
-def index():
+db_config = {
+    'host': '34.9.147.5',
+    'user': 'jonathan',
+    'password': ')1>SbilQ,$VKr=hO',
+    'database': 'db-mega-reporte',
+    'port': 3306
+}
+
+def get_connection():
     try:
-        conn = get_connection_google()
+        conn = mysql.connector.connect(**db_config)
+        return conn
+    except:
+        return None
+
+# ---------------- LOGIN ----------------
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        conn = get_connection()
         if not conn:
-            return jsonify({"status": "error", "message": "No se pudo conectar a la base de datos"}), 500
+            error = "No se pudo conectar a la base de datos"
+            return render_template("login.html", error=error)
 
-        cursor = conn.cursor()
-        # Consulta último corte
-        cursor.execute("""
-            SELECT MAX(
-    CASE
-        -- Domingo
-        WHEN Dias_mora_Domingo_23_50 IS NOT NULL THEN 'Dias_mora_Domingo_23_50'
-        WHEN Dias_mora_Domingo_20_30 IS NOT NULL THEN 'Dias_mora_Domingo_20_30'
-        WHEN Dias_mora_Domingo_18_30 IS NOT NULL THEN 'Dias_mora_Domingo_18_30'
-        WHEN Dias_mora_Domingo_16_30 IS NOT NULL THEN 'Dias_mora_Domingo_16_30'
-        WHEN Dias_mora_Domingo_14_30 IS NOT NULL THEN 'Dias_mora_Domingo_14_30'
-        WHEN Dias_mora_Domingo_13_30 IS NOT NULL THEN 'Dias_mora_Domingo_13_30'
-        WHEN Dias_mora_Domingo_11_30 IS NOT NULL THEN 'Dias_mora_Domingo_11_30'
-        WHEN Dias_mora_Domingo_09_30 IS NOT NULL THEN 'Dias_mora_Domingo_09_30'
-        WHEN Dias_mora_Domingo_07_30 IS NOT NULL THEN 'Dias_mora_Domingo_07_30'
-
-        -- Sábado
-        WHEN Dias_mora_Sabado_20_30 IS NOT NULL THEN 'Dias_mora_Sabado_20_30'
-        WHEN Dias_mora_Sabado_18_30 IS NOT NULL THEN 'Dias_mora_Sabado_18_30'
-        WHEN Dias_mora_Sabado_16_30 IS NOT NULL THEN 'Dias_mora_Sabado_16_30'
-        WHEN Dias_mora_Sabado_14_30 IS NOT NULL THEN 'Dias_mora_Sabado_14_30'
-        WHEN Dias_mora_Sabado_13_30 IS NOT NULL THEN 'Dias_mora_Sabado_13_30'
-        WHEN Dias_mora_Sabado_11_30 IS NOT NULL THEN 'Dias_mora_Sabado_11_30'
-        WHEN Dias_mora_Sabado_09_30 IS NOT NULL THEN 'Dias_mora_Sabado_09_30'
-        WHEN Dias_mora_Sabado_07_30 IS NOT NULL THEN 'Dias_mora_Sabado_07_30'
-
-        -- Viernes
-        WHEN Dias_mora_Viernes_20_30 IS NOT NULL THEN 'Dias_mora_Viernes_20_30'
-        WHEN Dias_mora_Viernes_18_30 IS NOT NULL THEN 'Dias_mora_Viernes_18_30'
-        WHEN Dias_mora_Viernes_16_30 IS NOT NULL THEN 'Dias_mora_Viernes_16_30'
-        WHEN Dias_mora_Viernes_14_30 IS NOT NULL THEN 'Dias_mora_Viernes_14_30'
-        WHEN Dias_mora_Viernes_13_30 IS NOT NULL THEN 'Dias_mora_Viernes_13_30'
-        WHEN Dias_mora_Viernes_11_30 IS NOT NULL THEN 'Dias_mora_Viernes_11_30'
-        WHEN Dias_mora_Viernes_09_30 IS NOT NULL THEN 'Dias_mora_Viernes_09_30'
-        WHEN Dias_mora_Viernes_07_30 IS NOT NULL THEN 'Dias_mora_Viernes_07_30'
-
-        -- Jueves
-        WHEN Dias_mora_Jueves_20_30 IS NOT NULL THEN 'Dias_mora_Jueves_20_30'
-        WHEN Dias_mora_Jueves_18_30 IS NOT NULL THEN 'Dias_mora_Jueves_18_30'
-        WHEN Dias_mora_Jueves_16_30 IS NOT NULL THEN 'Dias_mora_Jueves_16_30'
-        WHEN Dias_mora_Jueves_14_30 IS NOT NULL THEN 'Dias_mora_Jueves_14_30'
-        WHEN Dias_mora_Jueves_13_30 IS NOT NULL THEN 'Dias_mora_Jueves_13_30'
-        WHEN Dias_mora_Jueves_11_30 IS NOT NULL THEN 'Dias_mora_Jueves_11_30'
-        WHEN Dias_mora_Jueves_09_30 IS NOT NULL THEN 'Dias_mora_Jueves_09_30'
-        WHEN Dias_mora_Jueves_07_30 IS NOT NULL THEN 'Dias_mora_Jueves_07_30'
-
-        -- Miércoles
-        WHEN Dias_mora_Miercoles_20_30 IS NOT NULL THEN 'Dias_mora_Miercoles_20_30'
-        WHEN Dias_mora_Miercoles_18_30 IS NOT NULL THEN 'Dias_mora_Miercoles_18_30'
-        WHEN Dias_mora_Miercoles_16_30 IS NOT NULL THEN 'Dias_mora_Miercoles_16_30'
-        WHEN Dias_mora_Miercoles_14_30 IS NOT NULL THEN 'Dias_mora_Miercoles_14_30'
-        WHEN Dias_mora_Miercoles_13_30 IS NOT NULL THEN 'Dias_mora_Miercoles_13_30'
-        WHEN Dias_mora_Miercoles_11_30 IS NOT NULL THEN 'Dias_mora_Miercoles_11_30'
-        WHEN Dias_mora_Miercoles_09_30 IS NOT NULL THEN 'Dias_mora_Miercoles_09_30'
-        WHEN Dias_mora_Miercoles_07_30 IS NOT NULL THEN 'Dias_mora_Miercoles_07_30'
-
-        -- Martes
-        WHEN Dias_mora_Martes_20_30 IS NOT NULL THEN 'Dias_mora_Martes_20_30'
-        WHEN Dias_mora_Martes_18_30 IS NOT NULL THEN 'Dias_mora_Martes_18_30'
-        WHEN Dias_mora_Martes_16_30 IS NOT NULL THEN 'Dias_mora_Martes_16_30'
-        WHEN Dias_mora_Martes_14_30 IS NOT NULL THEN 'Dias_mora_Martes_14_30'
-        WHEN Dias_mora_Martes_13_30 IS NOT NULL THEN 'Dias_mora_Martes_13_30'
-        WHEN Dias_mora_Martes_11_30 IS NOT NULL THEN 'Dias_mora_Martes_11_30'
-        WHEN Dias_mora_Martes_09_30 IS NOT NULL THEN 'Dias_mora_Martes_09_30'
-        WHEN Dias_mora_Martes_07_30 IS NOT NULL THEN 'Dias_mora_Martes_07_30'
-
-        -- Lunes
-        WHEN Dias_mora_Lunes_20_30 IS NOT NULL THEN 'Dias_mora_Lunes_20_30'
-        WHEN Dias_mora_Lunes_18_30 IS NOT NULL THEN 'Dias_mora_Lunes_18_30'
-        WHEN Dias_mora_Lunes_16_30 IS NOT NULL THEN 'Dias_mora_Lunes_16_30'
-        WHEN Dias_mora_Lunes_14_30 IS NOT NULL THEN 'Dias_mora_Lunes_14_30'
-        WHEN Dias_mora_Lunes_13_30 IS NOT NULL THEN 'Dias_mora_Lunes_13_30'
-        WHEN Dias_mora_Lunes_11_30 IS NOT NULL THEN 'Dias_mora_Lunes_11_30'
-        WHEN Dias_mora_Lunes_09_30 IS NOT NULL THEN 'Dias_mora_Lunes_09_30'
-        WHEN Dias_mora_Lunes_07_30 IS NOT NULL THEN 'Dias_mora_Lunes_07_30'
-
-        ELSE NULL
-    END
-) AS ultima_columna_llena
-FROM tbl_segundometro_semana;
-
-        """)
-        ultima_columna = cursor.fetchone()[0]
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT * FROM usuarios WHERE username = %s AND password = %s",
+            (username, password)
+        )
+        user = cursor.fetchone()
         cursor.close()
-        close_connection(conn)
+        conn.close()
 
-        return render_template(
-            "index.html",
-            ultima_columna=ultima_columna,
-            hora_consulta=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            status="OK"
-        )
+        if user:
+            session["user"] = {
+                "id": user["id"],
+                "username": user["username"],
+                "nombre_completo": user["nombre_completo"]
+            }
+            return redirect(url_for("dashboard"))
+        else:
+            error = "Usuario o contraseña incorrectos"
 
-    except Exception as e:
-        print(traceback.format_exc())
-        return jsonify({"status": "error", "message": str(e)}), 500
+    return render_template("login.html", error=error)
 
+# ---------------- DASHBOARD ----------------
+@app.route("/dashboard")
+def dashboard():
+    if "user" not in session:
+        return redirect(url_for("login"))
 
-# ----------------------------------
-# Endpoint de descarga de Excel
-# ----------------------------------
+    user = session["user"]
+
+    # Consultar última fecha de corte
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT MAX(
+            CASE
+                WHEN Dias_mora_Viernes_11_30 IS NOT NULL THEN 'Dias_mora_Viernes_11_30'
+                WHEN Dias_mora_Jueves_11_30 IS NOT NULL THEN 'Dias_mora_Jueves_11_30'
+                ELSE 'Sin datos'
+            END
+        ) AS ultima_columna
+        FROM tbl_segundometro_semana;
+    """)
+    result = cursor.fetchone()
+    ultima_columna = result[0] if result else "Sin datos"
+    cursor.close()
+    conn.close()
+
+    return render_template("index.html",
+                           user=user,
+                           ultima_columna=ultima_columna,
+                           hora_consulta=pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+                           status="OK")
+
+# ---------------- DESCARGAR EXCEL ----------------
 @app.route("/download")
-def download_excel():
-    try:
-        # Ejecuta merge entre Google y AWS
-        df = merge_aws_google_batch()
+def download():
+    if "user" not in session:
+        return redirect(url_for("login"))
 
-        # Genera Excel en memoria
-        output = BytesIO()
-        df.to_excel(output, index=False)
-        output.seek(0)
+    # Ejecutar merge
+    df = merge_aws_google_batch()
 
-        filename = f"reporte_segundometro_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    # Crear archivo Excel en memoria
+    output = BytesIO()
+    df.to_excel(output, index=False, engine='openpyxl')
+    output.seek(0)
 
-        return send_file(
-            output,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            download_name=filename,
-            as_attachment=True
-        )
+    return send_file(output,
+                     attachment_filename="reporte_segundometro.xlsx",
+                     as_attachment=True,
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-    except Exception as e:
-        print(traceback.format_exc())
-        return jsonify({"status": "error", "message": str(e)}), 500
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
-
-# ----------------------
-# Main local
-# ----------------------
+# ---------------- RUN ----------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=8080, debug=True)
