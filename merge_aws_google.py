@@ -2,20 +2,57 @@ import pandas as pd
 from db_connection import get_connection, close_connection          # AWS
 from db_connection_google import get_connection_google, close_connection_google  # Google
 
-
 def merge_aws_google_batch(batch_size=5000, page=1):
     """
     Obtiene datos de Google Cloud SQL y AWS RDS en batches para evitar saturar Cloud Run.
     Retorna un DataFrame de pandas con los datos combinados de la página solicitada.
-
-    Args:
-        batch_size: cantidad de registros por batch (default 5000)
-        page: número de página (default 1)
     """
+    offset = (page - 1) * batch_size
 
     # --- Conexión Google Cloud SQL ---
     conn_google = get_connection_google()
-    offset = (page - 1) * batch_size
+
+    # 1️⃣ Obtener el nombre de la última columna no nula
+    query_ultima_columna = """
+        SELECT MAX(
+           CASE
+               -- Domingo
+               WHEN Dias_mora_Domingo_23_50 IS NOT NULL THEN 'Dias_mora_Domingo_23_50'
+               WHEN Dias_mora_Domingo_20_30 IS NOT NULL THEN 'Dias_mora_Domingo_20_30'
+               WHEN Dias_mora_Domingo_18_30 IS NOT NULL THEN 'Dias_mora_Domingo_18_30'
+               WHEN Dias_mora_Domingo_16_30 IS NOT NULL THEN 'Dias_mora_Domingo_16_30'
+               WHEN Dias_mora_Domingo_14_30 IS NOT NULL THEN 'Dias_mora_Domingo_14_30'
+               WHEN Dias_mora_Domingo_13_30 IS NOT NULL THEN 'Dias_mora_Domingo_13_30'
+               WHEN Dias_mora_Domingo_11_30 IS NOT NULL THEN 'Dias_mora_Domingo_11_30'
+               WHEN Dias_mora_Domingo_09_30 IS NOT NULL THEN 'Dias_mora_Domingo_09_30'
+               WHEN Dias_mora_Domingo_07_30 IS NOT NULL THEN 'Dias_mora_Domingo_07_30'
+               -- Sábado
+               WHEN Dias_mora_Sabado_20_30 IS NOT NULL THEN 'Dias_mora_Sabado_20_30'
+               WHEN Dias_mora_Sabado_18_30 IS NOT NULL THEN 'Dias_mora_Sabado_18_30'
+               WHEN Dias_mora_Sabado_16_30 IS NOT NULL THEN 'Dias_mora_Sabado_16_30'
+               WHEN Dias_mora_Sabado_14_30 IS NOT NULL THEN 'Dias_mora_Sabado_14_30'
+               WHEN Dias_mora_Sabado_13_30 IS NOT NULL THEN 'Dias_mora_Sabado_13_30'
+               WHEN Dias_mora_Sabado_11_30 IS NOT NULL THEN 'Dias_mora_Sabado_11_30'
+               WHEN Dias_mora_Sabado_09_30 IS NOT NULL THEN 'Dias_mora_Sabado_09_30'
+               WHEN Dias_mora_Sabado_07_30 IS NOT NULL THEN 'Dias_mora_Sabado_07_30'
+               -- Viernes
+               WHEN Dias_mora_Viernes_20_30 IS NOT NULL THEN 'Dias_mora_Viernes_20_30'
+               WHEN Dias_mora_Viernes_18_30 IS NOT NULL THEN 'Dias_mora_Viernes_18_30'
+               WHEN Dias_mora_Viernes_16_30 IS NOT NULL THEN 'Dias_mora_Viernes_16_30'
+               WHEN Dias_mora_Viernes_14_30 IS NOT NULL THEN 'Dias_mora_Viernes_14_30'
+               WHEN Dias_mora_Viernes_13_30 IS NOT NULL THEN 'Dias_mora_Viernes_13_30'
+               WHEN Dias_mora_Viernes_11_30 IS NOT NULL THEN 'Dias_mora_Viernes_11_30'
+               WHEN Dias_mora_Viernes_09_30 IS NOT NULL THEN 'Dias_mora_Viernes_09_30'
+               WHEN Dias_mora_Viernes_07_30 IS NOT NULL THEN 'Dias_mora_Viernes_07_30'
+               -- resto de días...
+               ELSE NULL
+           END
+       ) AS ultima_columna_llena
+       FROM tbl_segundometro_semana;
+    """
+    ultima_columna = pd.read_sql(query_ultima_columna, conn_google).iloc[0, 0]
+
+    # 2️⃣ Obtener los datos de Google filtrados por la última columna
     query_google = f"""
         SELECT KT AS id_original, Celular AS Telefono, Id_cliente AS mkm,
                Id_credito AS id_credit, nombre_cliente AS nombre, 1 AS pagos_vencidos,
@@ -24,6 +61,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
                'Transferencia' AS tipoo_de_pago, Referencia_stp AS clabe,
                'STP' AS banco, '' AS atributo_segmento
         FROM tbl_segundometro_semana
+        WHERE {ultima_columna} BETWEEN 1 AND 7
         ORDER BY KT
         LIMIT {batch_size} OFFSET {offset}
     """
@@ -37,7 +75,8 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     conn_aws = get_connection()
     ids_chunk = tuple(df_google['id_credit'].astype(str).tolist())
     if len(ids_chunk) == 1:
-        ids_chunk = f"('{ids_chunk[0]}')"  # SQL necesita paréntesis si solo 1
+        ids_chunk = f"('{ids_chunk[0]}')"
+
     query_aws = f"""
         SELECT o.id_oferta, p.id_persona, 
                CONCAT(p.primer_nombre, ' ', p.apellido_paterno, ' ', p.apellido_materno) AS nombre_completo,
@@ -53,11 +92,11 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     df_aws = pd.read_sql(query_aws, conn_aws)
     close_connection(conn_aws)
 
-    # --- Asegurar tipos de merge ---
+    # --- Asegurar tipos para merge ---
     df_google['id_credit'] = df_google['id_credit'].astype(str)
     df_aws['id_oferta'] = df_aws['id_oferta'].astype(str)
 
-    # --- Merge LEFT para mantener todos los registros de Google ---
+    # --- Merge LEFT ---
     df_merged = pd.merge(df_google, df_aws,
                          left_on='id_credit',
                          right_on='id_oferta',
@@ -73,8 +112,4 @@ def merge_aws_google_batch(batch_size=5000, page=1):
 # Alias de compatibilidad
 # ------------------------------
 def merge_aws_google():
-    """
-    Alias para compatibilidad con llamadas antiguas.
-    Ejecuta merge_aws_google_batch con batch_size=5000 en la página 1.
-    """
     return merge_aws_google_batch(batch_size=5000, page=1)
