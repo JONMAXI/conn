@@ -8,7 +8,7 @@ from mysql.connector import Error
 DB_USER = os.getenv("DB_USER_GOOGLE", "jonathan")
 DB_PASSWORD = os.getenv("DB_PASSWORD_GOOGLE", ")1>SbilQ,$VKr=hO")
 DB_NAME = os.getenv("DB_NAME_GOOGLE", "db-mega-reporte")
-INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME", "tu-proyecto:us-central1:tu-instancia")
+INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME", "mxkcobranza:us-central1:maxikash-db")
 DB_PORT = int(os.getenv("DB_PORT_GOOGLE", 3306))
 
 def get_connection_google():
