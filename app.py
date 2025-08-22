@@ -31,6 +31,29 @@ def pingdb():
         print("❌ ERROR en /pingdb:", error_msg)
         return jsonify({"status": "error", "message": str(e)}), 500
 
+from db_connection_google import get_connection_google, close_connection_google
+
+@app.route("/pingdb_google")
+def pingdb_google():
+    try:
+        conn = get_connection_google()
+        if not conn:
+            return jsonify({"status": "error", "message": "No se pudo conectar a Google Cloud SQL"}), 500
+
+        cursor = conn.cursor()
+        cursor.execute("SELECT NOW();")
+        result = cursor.fetchone()
+        cursor.close()
+        close_connection_google(conn)
+        return jsonify({"status": "ok", "db_time": str(result[0])})
+
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print("❌ ERROR en /pingdb_google:", error_msg)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 # Main para correr localmente (Cloud Run ignora esto, usa gunicorn)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
