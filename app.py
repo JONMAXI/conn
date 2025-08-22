@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from db_connection import get_connection, close_connection
+from merge_aws_google import merge_aws_google_batch
 import os
 import traceback
 
