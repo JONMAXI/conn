@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from merge_aws_google import merge_aws_google_batch
 from io import BytesIO
+import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")  # Para sesiones
