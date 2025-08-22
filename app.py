@@ -54,6 +54,18 @@ def pingdb_google():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@app.route("/merge-data")
+def merge_data_endpoint():
+    try:
+        df = merge_aws_google_batch()
+        # Convierte a JSON para respuesta HTTP
+        return df.to_json(orient="records")
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 # Main para correr localmente (Cloud Run ignora esto, usa gunicorn)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
