@@ -155,26 +155,21 @@ def download_excel():
         page = 1
         output = BytesIO()
 
-        # Creamos el ExcelWriter
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             while True:
                 df = merge_aws_google_batch(batch_size=batch_size, page=page)
                 if df.empty:
-                    break  # terminamos cuando no hay más registros
+                    break
 
-                # Escribimos al Excel, agregando hoja por batch o appending filas
-                startrow = (page - 1) * batch_size
-                df.to_excel(writer, index=False, sheet_name='Reporte', startrow=startrow if page > 1 else 0, header=(page==1))
-                
+                sheet_name = f'Reporte_{page}'
+                df.to_excel(writer, index=False, sheet_name=sheet_name)
                 page += 1
-
-            writer.save()
 
         output.seek(0)
         return send_file(
             output,
             as_attachment=True,
-            download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx',
+            download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
