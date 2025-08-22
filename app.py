@@ -151,26 +151,37 @@ FROM tbl_segundometro_semana;
 @app.route("/download")
 def download_excel():
     try:
-        df = merge_aws_google_batch(batch_size=5000, page=1)
-        if df.empty:
-            return jsonify({"message": "No hay datos para generar el archivo"}), 404
-
+        batch_size = 5000
+        page = 1
         output = BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name="Reporte")
-        output.seek(0)
 
+        # Creamos el ExcelWriter
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            while True:
+                df = merge_aws_google_batch(batch_size=batch_size, page=page)
+                if df.empty:
+                    break  # terminamos cuando no hay más registros
+
+                # Escribimos al Excel, agregando hoja por batch o appending filas
+                startrow = (page - 1) * batch_size
+                df.to_excel(writer, index=False, sheet_name='Reporte', startrow=startrow if page > 1 else 0, header=(page==1))
+                
+                page += 1
+
+            writer.save()
+
+        output.seek(0)
         return send_file(
             output,
             as_attachment=True,
-            download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            download_name=f"reporte_segundometro_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
+
     except Exception as e:
         import traceback
         print(traceback.format_exc())
         return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
-
 # ---------------------------
 # LOGOUT
 # ---------------------------
