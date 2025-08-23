@@ -261,7 +261,7 @@ def ejecutar_bonos():
         # ------------------------------
         # Verificar si ya se ejecutó
         # ------------------------------
-        cursor.execute(f"SELECT COUNT(*) FROM {TABLA_DESTINO} WHERE Semana='{SEMANA}';")
+        cursor.execute(f"SELECT COUNT(*) FROM {TABLA_DESTINO} WHERE SEMANA='{SEMANA}';")
         count_destino = cursor.fetchone()[0]
         if count_destino > 2:
             logs.append(f"❌ Ya se ejecutó el cálculo de bonos para {SEMANA}. Contacte al administrador para restaurar los datos.")
@@ -276,7 +276,7 @@ def ejecutar_bonos():
                 INSERT INTO {TABLA_DESTINO} (Nombre_RH, Territorial, Gestor_Asignado, Cobranza, Semana)
                 SELECT Gestor_Asignado, Territorial, Gestor_Asignado, SUM(Saldo_vencido_actualizado), '{SEMANA}'
                 FROM {TABLA_ORIGEN}
-                WHERE Semana = '{SEMANA}'
+                WHERE SEMANA = '{SEMANA}'
                 GROUP BY Gestor_Asignado, Territorial;
             """)
             conn.commit()
@@ -291,7 +291,7 @@ def ejecutar_bonos():
                            COUNT(*) AS Asignacion,
                            COUNT(CASE WHEN {TBL_CIERRE_DIA}=0 THEN 1 ELSE NULL END) AS Cura
                     FROM {TABLA_ORIGEN}
-                    WHERE Semana = '{SEMANA}'
+                    WHERE SEMANA = '{SEMANA}'
                     GROUP BY Gestor_Asignado
                 ) t ON gc.Gestor_Asignado = t.Gestor_Asignado
                 SET gc.Asignacion = t.Asignacion,
@@ -341,7 +341,7 @@ def ejecutar_bonos():
                 UPDATE {TABLA_DESTINO} gc
                 JOIN (
                     SELECT Gestor_Asignado,SUM(Saldo_vencido_actualizado) AS Total_Cobranza
-                    FROM {TABLA_ORIGEN} WHERE Semana='{SEMANA}' GROUP BY Gestor_Asignado
+                    FROM {TABLA_ORIGEN} WHERE SEMANA='{SEMANA}' GROUP BY Gestor_Asignado
                 ) t ON gc.Gestor_Asignado=t.Gestor_Asignado
                 SET gc.Cobranza=t.Total_Cobranza;
             """)
