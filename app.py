@@ -50,6 +50,10 @@ def index():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+ # 👇 Validación especial para guillermo
+    if session.get("username") == "guillermo":
+        return render_template("bonos_1_7.html", nombre=session.get("nombre_completo"))
+
     conn = get_connection_google()
     cursor = conn.cursor()
 
@@ -201,6 +205,109 @@ def download_excel():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+# ------------------------------
+# EJECUCIÓN DE BONOS
+# ------------------------------
+@app.route("/ejecutar_bonos", methods=["POST"])
+def ejecutar_bonos():
+    from db_connection_google import get_connection_google, close_connection_google
+    from mysql.connector import Error
+    tz = pytz.timezone('America/Mexico_City')
+    hoy = datetime.now(tz)
+    dia_semana = hoy.weekday()  # 0=Lunes ... 6=Domingo
+
+    TABLA_ORIGEN = 'tbl_segundometro_semana'
+    TABLA_DESTINO = 'tbl_eficiencia_bonos_1_7'
+
+    if dia_semana == 5:
+        DIA_EJECUCION = 'SABADO'
+        TBL_CIERRE_DIA = 'Dias_mora_Sabado_09_30'
+    elif dia_semana == 6:
+        DIA_EJECUCION = 'DOMINGO'
+        TBL_CIERRE_DIA = 'Dias_mora_Domingo_09_30'
+    elif dia_semana == 0:
+        DIA_EJECUCION = 'LUNES'
+        TBL_CIERRE_DIA = 'Dias_mora_Domingo_09_30'
+    else:
+        return jsonify({"status": "error", "logs": ["❌ Este script solo debe ejecutarse Sábado, Domingo o Lunes."]})
+
+    # Calcular semana
+    fecha_semana = hoy
+    if DIA_EJECUCION == 'LUNES':
+        fecha_semana -= timedelta(days=1)
+
+    numero_semana = fecha_semana.isocalendar()[1]
+    anio = fecha_semana.year
+    SEMANA = f"Semana {numero_semana}-{anio}"
+
+    logs = []
+    conn = None
+    cursor = None
+
+    try:
+        conn = get_connection_google()
+        cursor = conn.cursor()
+        logs.append("✅ Conexión exitosa a la base de datos")
+
+        # ------------------------------
+        # Aquí se insertan y actualizan registros según el día
+        # ------------------------------
+        if DIA_EJECUCION == 'SABADO':
+            logs.append(f"🔹 Sábado: Insertando datos base en {TABLA_DESTINO}...")
+            insert_sql = f"""
+            INSERT INTO {TABLA_DESTINO} (Nombre_RH, Territorial, Gestor_Asignado, Cobranza)
+            SELECT 
+                Gestor_Asignado AS Nombre_RH,
+                Territorial,
+                Gestor_Asignado,
+                SUM(Saldo_vencido_actualizado) AS Cobranza
+            FROM {TABLA_ORIGEN}
+            WHERE Semana = '{SEMANA}'
+            GROUP BY Gestor_Asignado, Territorial;
+            """
+            cursor.execute(insert_sql)
+            conn.commit()
+            logs.append("✅ Datos base insertados")
+
+            # Aquí seguirías pegando todos tus bloques de UPDATE...
+            # Solo cambia los print(...) por logs.append("mensaje...")
+
+        elif DIA_EJECUCION == 'DOMINGO':
+            logs.append("🔹 Domingo: calculando cierre SÁBADO...")
+            update_cierre_sabado = f"""
+            UPDATE {TABLA_DESTINO}
+            SET Cierre = 'Cierre Sábado'
+            WHERE (Cierre IS NULL OR Cierre = '');
+            """
+            cursor.execute(update_cierre_sabado)
+            conn.commit()
+            logs.append("✅ Cierre SABADO calculado")
+
+        elif DIA_EJECUCION == 'LUNES':
+            logs.append("🔹 Lunes: calculando cierre DOMINGO...")
+            update_cierre_domingo = f"""
+            UPDATE {TABLA_DESTINO}
+            SET Cierre = 'Cierre Domingo'
+            WHERE (Cierre IS NULL OR Cierre = '');
+            """
+            cursor.execute(update_cierre_domingo)
+            conn.commit()
+            logs.append("✅ Cierre DOMINGO calculado")
+
+        logs.append("🎉 Proceso finalizado correctamente.")
+
+    except Error as e:
+        logs.append(f"❌ Error en ejecución: {str(e)}")
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            close_connection_google(conn)
+            logs.append("🔒 Conexión cerrada")
+
+    return jsonify({"status": "ok", "logs": logs})
 
 
 
