@@ -54,7 +54,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
 
     # 2️⃣ Obtener los datos de Google filtrados por la última columna
     query_google = f"""
-        SELECT KT AS id_original, Celular AS Telefono, Id_cliente AS mkm,
+        SELECT KT AS id_original, Celular AS Telefono, 'Transferencia' as fideicomiso, Id_cliente AS mkm,
                Id_credito AS id_credit, nombre_cliente AS nombre, 1 AS pagos_vencidos,
                saldo_vencido_inicio AS monto_vencido,
                '' AS bucket, '' AS fecha_de_pago, '' AS telefono_1,
@@ -78,12 +78,13 @@ def merge_aws_google_batch(batch_size=5000, page=1):
         ids_chunk = f"('{ids_chunk[0]}')"
 
     query_aws = f"""
-        SELECT o.id_oferta, p.id_persona, 
+        SELECT o.id_oferta, 
                CONCAT(p.primer_nombre, ' ', p.apellido_paterno, ' ', p.apellido_materno) AS nombre_completo,
                CONCAT(p2.nombre_referencia1, ' ', p2.apellido_paterno_referencia1, ' ', p2.apellido_materno_referencia1) AS nombre_completo_referencia1,
                p2.telefono_referencia1,
                CONCAT(p2.nombre_referencia2, ' ', p2.apellido_paterno_referencia2, ' ', p2.apellido_materno_referencia2) AS nombre_completo_referencia2,
-               p2.telefono_referencia2
+               p2.telefono_referencia2, '' as nombre_referencia_3, '' as telefono_referencia_3, 0 as Motivo_de_no_Pago, 0 as cuando_le_pagan, 0 as Giro_de_Trabajo, 0 as hora_de_pago
+
         FROM oferta o
         INNER JOIN persona p ON o.fk_persona = p.id_persona
         LEFT JOIN persona_adicionales p2 ON p2.fk_persona = p.id_persona
