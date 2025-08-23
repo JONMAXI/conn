@@ -206,6 +206,7 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+
 # ------------------------------
 # EJECUCIÓN DE BONOS
 # ------------------------------
@@ -213,6 +214,10 @@ def logout():
 def ejecutar_bonos():
     from db_connection_google import get_connection_google, close_connection_google
     from mysql.connector import Error
+    from datetime import datetime, timedelta
+    import pytz
+
+    logs = []  # 🔹 Inicializamos logs
     tz = pytz.timezone('America/Mexico_City')
     hoy = datetime.now(tz)
     dia_semana = hoy.weekday()  # 0=Lunes ... 6=Domingo
@@ -220,20 +225,24 @@ def ejecutar_bonos():
     TABLA_ORIGEN = 'tbl_segundometro_semana'
     TABLA_DESTINO = 'tbl_eficiencia_bonos_1_7'
 
+    # ------------------------------
     # Determinar día de ejecución
-    if dia_semana == 5:
+    # ------------------------------
+    if dia_semana == 5:  # Sábado
         DIA_EJECUCION = 'SABADO'
         TBL_CIERRE_DIA = 'Dias_mora_Sabado_09_30'
-    elif dia_semana == 6:
+    elif dia_semana == 6:  # Domingo
         DIA_EJECUCION = 'DOMINGO'
         TBL_CIERRE_DIA = 'Dias_mora_Domingo_09_30'
-    elif dia_semana == 0:
+    elif dia_semana == 0:  # Lunes
         DIA_EJECUCION = 'LUNES'
-        TBL_CIERRE_DIA = 'Dias_mora_Domingo_09_30'
+        TBL_CIERRE_DIA = 'Dias_mora_Lunes_09_30'
     else:
         return jsonify({"status": "error", "logs": ["❌ Este script solo debe ejecutarse Sábado, Domingo o Lunes."]})
 
+    # ------------------------------
     # Calcular semana
+    # ------------------------------
     fecha_semana = hoy
     if DIA_EJECUCION == 'LUNES':
         fecha_semana -= timedelta(days=1)
@@ -250,51 +259,50 @@ def ejecutar_bonos():
         logs.append("✅ Conexión exitosa a la base de datos")
 
         # ------------------------------
-        # SÁBADO
+        # Verificar si ya se ejecutó
         # ------------------------------
-       if DIA_EJECUCION == 'SABADO':
-   	 # Verificamos si ya se ejecutó
-   	 cursor.execute(f"SELECT COUNT(*) FROM {TABLA_DESTINO} WHERE Semana='{SEMANA}';")
-    	count_destino = cursor.fetchone()[0]
-    	if count_destino > 2:
-        	logs.append(f"❌ Ya se ejecutó el cálculo de bonos para {SEMANA}. Contacte al administrador para restaurar los datos.")
-        	return jsonify({"status":"error","logs":logs})
+        cursor.execute(f"SELECT COUNT(*) FROM {TABLA_DESTINO} WHERE Semana='{SEMANA}';")
+        count_destino = cursor.fetchone()[0]
+        if count_destino > 2:
+            logs.append(f"❌ Ya se ejecutó el cálculo de bonos para {SEMANA}. Contacte al administrador para restaurar los datos.")
+            return jsonify({"status": "error", "logs": logs})
 
-    	logs.append(f"🔹 Sábado: Insertando datos base en {TABLA_DESTINO}...")
-    	cursor.execute(f"""
-    	INSERT INTO {TABLA_DESTINO} (Nombre_RH, Territorial, Gestor_Asignado, Cobranza, Semana)
-    	SELECT Gestor_Asignado, Territorial, Gestor_Asignado, SUM(Saldo_vencido_actualizado), '{SEMANA}'
-    	FROM {TABLA_ORIGEN}
-    	WHERE Semana = '{SEMANA}'
-    	GROUP BY Gestor_Asignado, Territorial;
-    	""")
-    	conn.commit()
-    	logs.append("✅ Datos base insertados")
+        # ------------------------------
+        # BLOQUE SÁBADO
+        # ------------------------------
+        if DIA_EJECUCION == 'SABADO':
+            logs.append(f"🔹 Sábado: Insertando datos base en {TABLA_DESTINO}...")
+            cursor.execute(f"""
+                INSERT INTO {TABLA_DESTINO} (Nombre_RH, Territorial, Gestor_Asignado, Cobranza, Semana)
+                SELECT Gestor_Asignado, Territorial, Gestor_Asignado, SUM(Saldo_vencido_actualizado), '{SEMANA}'
+                FROM {TABLA_ORIGEN}
+                WHERE Semana = '{SEMANA}'
+                GROUP BY Gestor_Asignado, Territorial;
+            """)
+            conn.commit()
+            logs.append("✅ Datos base insertados")
 
             # Asignación y Cura
             logs.append("🔹 Calculando Asignacion y Cura...")
             cursor.execute(f"""
-            UPDATE {TABLA_DESTINO} gc
-            JOIN (
-                SELECT Gestor_Asignado,
-                       COUNT(*) AS Asignacion,
-                       COUNT(CASE WHEN {TBL_CIERRE_DIA}=0 THEN 1 ELSE NULL END) AS Cura
-                FROM {TABLA_ORIGEN}
-                WHERE Semana = '{SEMANA}'
-                GROUP BY Gestor_Asignado
-            ) t ON gc.Gestor_Asignado = t.Gestor_Asignado
-            SET gc.Asignacion = t.Asignacion,
-                gc.Cura = t.Cura;
+                UPDATE {TABLA_DESTINO} gc
+                JOIN (
+                    SELECT Gestor_Asignado,
+                           COUNT(*) AS Asignacion,
+                           COUNT(CASE WHEN {TBL_CIERRE_DIA}=0 THEN 1 ELSE NULL END) AS Cura
+                    FROM {TABLA_ORIGEN}
+                    WHERE Semana = '{SEMANA}'
+                    GROUP BY Gestor_Asignado
+                ) t ON gc.Gestor_Asignado = t.Gestor_Asignado
+                SET gc.Asignacion = t.Asignacion,
+                    gc.Cura = t.Cura;
             """)
             conn.commit()
             logs.append("✅ Asignacion y Cura actualizados")
 
             # Eficiencia
             logs.append("🔹 Calculando Eficiencia...")
-            cursor.execute(f"""
-            UPDATE {TABLA_DESTINO}
-            SET Eficiencia = IF(Asignacion>0,(Cura/Asignacion)*100,0);
-            """)
+            cursor.execute(f"UPDATE {TABLA_DESTINO} SET Eficiencia = IF(Asignacion>0,(Cura/Asignacion)*100,0);")
             conn.commit()
             logs.append("✅ Eficiencia calculada")
 
@@ -307,12 +315,12 @@ def ejecutar_bonos():
             # Tipo de Gestor
             logs.append("🔹 Asignando Tipo de Gestor...")
             cursor.execute(f"""
-            UPDATE {TABLA_DESTINO}
-            SET Tipo_de_Gestor = CASE
-                WHEN Asignacion<=19 THEN 'ARCADIO'
-                WHEN Asignacion BETWEEN 20 AND 29 THEN 'GLADIADOR'
-                ELSE 'CENTURION'
-            END;
+                UPDATE {TABLA_DESTINO}
+                SET Tipo_de_Gestor = CASE
+                    WHEN Asignacion<=19 THEN 'ARCADIO'
+                    WHEN Asignacion BETWEEN 20 AND 29 THEN 'GLADIADOR'
+                    ELSE 'CENTURION'
+                END;
             """)
             conn.commit()
             logs.append("✅ Tipo de Gestor asignado")
@@ -320,9 +328,9 @@ def ejecutar_bonos():
             # Cierre Viernes
             logs.append("🔹 Calculando Cierre VIERNES...")
             cursor.execute(f"""
-            UPDATE {TABLA_DESTINO}
-            SET Cierre='Cierre Viernes'
-            WHERE (Eficiencia>=97) AND (Cierre IS NULL OR Cierre='');
+                UPDATE {TABLA_DESTINO}
+                SET Cierre='Cierre Viernes'
+                WHERE (Eficiencia>=97) AND (Cierre IS NULL OR Cierre='');
             """)
             conn.commit()
             logs.append("✅ Cierre VIERNES calculado")
@@ -330,38 +338,38 @@ def ejecutar_bonos():
             # Cobranza total
             logs.append("🔹 Calculando Cobranza total por gestor...")
             cursor.execute(f"""
-            UPDATE {TABLA_DESTINO} gc
-            JOIN (
-                SELECT Gestor_Asignado,SUM(Saldo_vencido_actualizado) AS Total_Cobranza
-                FROM {TABLA_ORIGEN} WHERE Semana='{SEMANA}' GROUP BY Gestor_Asignado
-            ) t ON gc.Gestor_Asignado=t.Gestor_Asignado
-            SET gc.Cobranza=t.Total_Cobranza;
+                UPDATE {TABLA_DESTINO} gc
+                JOIN (
+                    SELECT Gestor_Asignado,SUM(Saldo_vencido_actualizado) AS Total_Cobranza
+                    FROM {TABLA_ORIGEN} WHERE Semana='{SEMANA}' GROUP BY Gestor_Asignado
+                ) t ON gc.Gestor_Asignado=t.Gestor_Asignado
+                SET gc.Cobranza=t.Total_Cobranza;
             """)
             conn.commit()
             logs.append("✅ Cobranza total actualizada")
 
         # ------------------------------
-        # DOMINGO
+        # BLOQUE DOMINGO
         # ------------------------------
         elif DIA_EJECUCION=='DOMINGO':
             logs.append("🔹 Domingo: calculando cierre SÁBADO...")
             cursor.execute(f"""
-            UPDATE {TABLA_DESTINO}
-            SET Cierre='Cierre Sábado'
-            WHERE Cierre IS NULL OR Cierre='';
+                UPDATE {TABLA_DESTINO}
+                SET Cierre='Cierre Sábado'
+                WHERE Cierre IS NULL OR Cierre='';
             """)
             conn.commit()
             logs.append("✅ Cierre SABADO calculado")
 
         # ------------------------------
-        # LUNES
+        # BLOQUE LUNES
         # ------------------------------
         elif DIA_EJECUCION=='LUNES':
             logs.append("🔹 Lunes: calculando cierre DOMINGO...")
             cursor.execute(f"""
-            UPDATE {TABLA_DESTINO}
-            SET Cierre='Cierre Domingo'
-            WHERE Cierre IS NULL OR Cierre='';
+                UPDATE {TABLA_DESTINO}
+                SET Cierre='Cierre Domingo'
+                WHERE Cierre IS NULL OR Cierre='';
             """)
             conn.commit()
             logs.append("✅ Cierre DOMINGO calculado")
@@ -381,13 +389,13 @@ def ejecutar_bonos():
 
         logs.append(f"🔹 Calculando bono para {cierre_objetivo}...")
         cursor.execute(f"""
-        UPDATE {TABLA_DESTINO}
-        SET Bono = CASE
-            WHEN Tipo_de_Gestor='ARCADIO' THEN {bonos['ARCADIO']}
-            WHEN Tipo_de_Gestor='GLADIADOR' THEN {bonos['GLADIADOR']}
-            WHEN Tipo_de_Gestor='CENTURION' THEN {bonos['CENTURION']}
-        END
-        WHERE Cierre='{cierre_objetivo}';
+            UPDATE {TABLA_DESTINO}
+            SET Bono = CASE
+                WHEN Tipo_de_Gestor='ARCADIO' THEN {bonos['ARCADIO']}
+                WHEN Tipo_de_Gestor='GLADIADOR' THEN {bonos['GLADIADOR']}
+                WHEN Tipo_de_Gestor='CENTURION' THEN {bonos['CENTURION']}
+            END
+            WHERE Cierre='{cierre_objetivo}';
         """)
         conn.commit()
         logs.append(f"✅ Bono actualizado para {cierre_objetivo}")
@@ -398,9 +406,12 @@ def ejecutar_bonos():
 
     finally:
         if cursor: cursor.close()
-        if conn: close_connection_google(conn); logs.append("🔒 Conexión cerrada")
+        if conn:
+            close_connection_google(conn)
+            logs.append("🔒 Conexión cerrada")
 
     return jsonify({"status":"ok","logs":logs})
+  
 
 
 # ---------------------------
