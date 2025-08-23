@@ -252,17 +252,24 @@ def ejecutar_bonos():
         # ------------------------------
         # SÁBADO
         # ------------------------------
-        if DIA_EJECUCION == 'SABADO':
-            logs.append(f"🔹 Sábado: Insertando datos base en {TABLA_DESTINO}...")
-            cursor.execute(f"""
-            INSERT INTO {TABLA_DESTINO} (Nombre_RH, Territorial, Gestor_Asignado, Cobranza)
-            SELECT Gestor_Asignado, Territorial, Gestor_Asignado, SUM(Saldo_vencido_actualizado)
-            FROM {TABLA_ORIGEN}
-            WHERE Semana = '{SEMANA}'
-            GROUP BY Gestor_Asignado, Territorial;
-            """)
-            conn.commit()
-            logs.append("✅ Datos base insertados")
+       if DIA_EJECUCION == 'SABADO':
+   	 # Verificamos si ya se ejecutó
+   	 cursor.execute(f"SELECT COUNT(*) FROM {TABLA_DESTINO} WHERE Semana='{SEMANA}';")
+    	count_destino = cursor.fetchone()[0]
+    	if count_destino > 2:
+        	logs.append(f"❌ Ya se ejecutó el cálculo de bonos para {SEMANA}. Contacte al administrador para restaurar los datos.")
+        	return jsonify({"status":"error","logs":logs})
+
+    	logs.append(f"🔹 Sábado: Insertando datos base en {TABLA_DESTINO}...")
+    	cursor.execute(f"""
+    	INSERT INTO {TABLA_DESTINO} (Nombre_RH, Territorial, Gestor_Asignado, Cobranza, Semana)
+    	SELECT Gestor_Asignado, Territorial, Gestor_Asignado, SUM(Saldo_vencido_actualizado), '{SEMANA}'
+    	FROM {TABLA_ORIGEN}
+    	WHERE Semana = '{SEMANA}'
+    	GROUP BY Gestor_Asignado, Territorial;
+    	""")
+    	conn.commit()
+    	logs.append("✅ Datos base insertados")
 
             # Asignación y Cura
             logs.append("🔹 Calculando Asignacion y Cura...")
