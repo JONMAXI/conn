@@ -262,10 +262,11 @@ def ejecutar_bonos():
         # Verificar si ya se ejecutó
         # ------------------------------
         cursor.execute(f"SELECT COUNT(*) FROM {TABLA_DESTINO} WHERE SEMANA='{SEMANA}';")
-        count_destino = cursor.fetchone()[0]
-        if count_destino > 2:
-            logs.append(f"❌ Ya se ejecutó el cálculo de bonos para {SEMANA}. Contacte al administrador para restaurar los datos.")
-            return jsonify({"status": "error", "logs": logs})
+	count_destino = cursor.fetchone()[0]
+
+	if DIA_EJECUCION == 'SABADO' and count_destino > 2:
+    	logs.append(f"❌ Ya se ejecutó el cálculo de bonos para {SEMANA} (sábado). Espere al domingo o contacte al administrador.")
+    	return jsonify({"status": "error", "logs": logs})
 
         # ------------------------------
         # BLOQUE SÁBADO
