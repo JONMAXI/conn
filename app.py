@@ -220,7 +220,7 @@ def ejecutar_bonos():
     logs = []  # 🔹 Inicializamos logs
     tz = pytz.timezone('America/Mexico_City')
     hoy = datetime.now(tz)
-    dia_semana = hoy.weekday()  # 0=Lunes ... 6=Domingo
+    dia_semana = 6 #hoy.weekday()  # 0=Lunes ... 6=Domingo
 
     TABLA_ORIGEN = 'tbl_segundometro_semana'
     TABLA_DESTINO = 'tbl_eficiencia_bonos_1_7'
