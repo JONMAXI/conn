@@ -50,85 +50,149 @@ def index():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
- # 👇 Validación especial para guillermo
+    # 👇 Validación especial para guillermo
     if session.get("username") == "guillermo":
         return render_template("bonos_1_7.html", nombre=session.get("nombre_completo"))
 
     conn = get_connection_google()
     cursor = conn.cursor()
 
-    # Consulta último corte
+    # Consulta último corte con fecha/hora real
     cursor.execute("""
-       SELECT MAX(
-           CASE
-               -- Domingo
-               WHEN Dias_mora_Domingo_23_50 IS NOT NULL THEN 'Dias_mora_Domingo_23_50'
-               WHEN Dias_mora_Domingo_20_30 IS NOT NULL THEN 'Dias_mora_Domingo_20_30'
-               WHEN Dias_mora_Domingo_18_30 IS NOT NULL THEN 'Dias_mora_Domingo_18_30'
-               WHEN Dias_mora_Domingo_16_30 IS NOT NULL THEN 'Dias_mora_Domingo_16_30'
-               WHEN Dias_mora_Domingo_14_30 IS NOT NULL THEN 'Dias_mora_Domingo_14_30'
-               WHEN Dias_mora_Domingo_13_30 IS NOT NULL THEN 'Dias_mora_Domingo_13_30'
-               WHEN Dias_mora_Domingo_11_30 IS NOT NULL THEN 'Dias_mora_Domingo_11_30'
-               WHEN Dias_mora_Domingo_09_30 IS NOT NULL THEN 'Dias_mora_Domingo_09_30'
-               WHEN Dias_mora_Domingo_07_30 IS NOT NULL THEN 'Dias_mora_Domingo_07_30'
-               -- Sábado
-               WHEN Dias_mora_Sabado_20_30 IS NOT NULL THEN 'Dias_mora_Sabado_20_30'
-               WHEN Dias_mora_Sabado_18_30 IS NOT NULL THEN 'Dias_mora_Sabado_18_30'
-               WHEN Dias_mora_Sabado_16_30 IS NOT NULL THEN 'Dias_mora_Sabado_16_30'
-               WHEN Dias_mora_Sabado_14_30 IS NOT NULL THEN 'Dias_mora_Sabado_14_30'
-               WHEN Dias_mora_Sabado_13_30 IS NOT NULL THEN 'Dias_mora_Sabado_13_30'
-               WHEN Dias_mora_Sabado_11_30 IS NOT NULL THEN 'Dias_mora_Sabado_11_30'
-               WHEN Dias_mora_Sabado_09_30 IS NOT NULL THEN 'Dias_mora_Sabado_09_30'
-               WHEN Dias_mora_Sabado_07_30 IS NOT NULL THEN 'Dias_mora_Sabado_07_30'
-               -- Viernes
-               WHEN Dias_mora_Viernes_20_30 IS NOT NULL THEN 'Dias_mora_Viernes_20_30'
-               WHEN Dias_mora_Viernes_18_30 IS NOT NULL THEN 'Dias_mora_Viernes_18_30'
-               WHEN Dias_mora_Viernes_16_30 IS NOT NULL THEN 'Dias_mora_Viernes_16_30'
-               WHEN Dias_mora_Viernes_14_30 IS NOT NULL THEN 'Dias_mora_Viernes_14_30'
-               WHEN Dias_mora_Viernes_13_30 IS NOT NULL THEN 'Dias_mora_Viernes_13_30'
-               WHEN Dias_mora_Viernes_11_30 IS NOT NULL THEN 'Dias_mora_Viernes_11_30'
-               WHEN Dias_mora_Viernes_09_30 IS NOT NULL THEN 'Dias_mora_Viernes_09_30'
-               WHEN Dias_mora_Viernes_07_30 IS NOT NULL THEN 'Dias_mora_Viernes_07_30'
-               -- Jueves
-               WHEN Dias_mora_Jueves_20_30 IS NOT NULL THEN 'Dias_mora_Jueves_20_30'
-               WHEN Dias_mora_Jueves_18_30 IS NOT NULL THEN 'Dias_mora_Jueves_18_30'
-               WHEN Dias_mora_Jueves_16_30 IS NOT NULL THEN 'Dias_mora_Jueves_16_30'
-               WHEN Dias_mora_Jueves_14_30 IS NOT NULL THEN 'Dias_mora_Jueves_14_30'
-               WHEN Dias_mora_Jueves_13_30 IS NOT NULL THEN 'Dias_mora_Jueves_13_30'
-               WHEN Dias_mora_Jueves_11_30 IS NOT NULL THEN 'Dias_mora_Jueves_11_30'
-               WHEN Dias_mora_Jueves_09_30 IS NOT NULL THEN 'Dias_mora_Jueves_09_30'
-               WHEN Dias_mora_Jueves_07_30 IS NOT NULL THEN 'Dias_mora_Jueves_07_30'
-               -- Miércoles
-               WHEN Dias_mora_Miercoles_20_30 IS NOT NULL THEN 'Dias_mora_Miercoles_20_30'
-               WHEN Dias_mora_Miercoles_18_30 IS NOT NULL THEN 'Dias_mora_Miercoles_18_30'
-               WHEN Dias_mora_Miercoles_16_30 IS NOT NULL THEN 'Dias_mora_Miercoles_16_30'
-               WHEN Dias_mora_Miercoles_14_30 IS NOT NULL THEN 'Dias_mora_Miercoles_14_30'
-               WHEN Dias_mora_Miercoles_13_30 IS NOT NULL THEN 'Dias_mora_Miercoles_13_30'
-               WHEN Dias_mora_Miercoles_11_30 IS NOT NULL THEN 'Dias_mora_Miercoles_11_30'
-               WHEN Dias_mora_Miercoles_09_30 IS NOT NULL THEN 'Dias_mora_Miercoles_09_30'
-               WHEN Dias_mora_Miercoles_07_30 IS NOT NULL THEN 'Dias_mora_Miercoles_07_30'
-               -- Martes
-               WHEN Dias_mora_Martes_20_30 IS NOT NULL THEN 'Dias_mora_Martes_20_30'
-               WHEN Dias_mora_Martes_18_30 IS NOT NULL THEN 'Dias_mora_Martes_18_30'
-               WHEN Dias_mora_Martes_16_30 IS NOT NULL THEN 'Dias_mora_Martes_16_30'
-               WHEN Dias_mora_Martes_14_30 IS NOT NULL THEN 'Dias_mora_Martes_14_30'
-               WHEN Dias_mora_Martes_13_30 IS NOT NULL THEN 'Dias_mora_Martes_13_30'
-               WHEN Dias_mora_Martes_11_30 IS NOT NULL THEN 'Dias_mora_Martes_11_30'
-               WHEN Dias_mora_Martes_09_30 IS NOT NULL THEN 'Dias_mora_Martes_09_30'
-               WHEN Dias_mora_Martes_07_30 IS NOT NULL THEN 'Dias_mora_Martes_07_30'
-               -- Lunes
-               WHEN Dias_mora_Lunes_20_30 IS NOT NULL THEN 'Dias_mora_Lunes_20_30'
-               WHEN Dias_mora_Lunes_18_30 IS NOT NULL THEN 'Dias_mora_Lunes_18_30'
-               WHEN Dias_mora_Lunes_16_30 IS NOT NULL THEN 'Dias_mora_Lunes_16_30'
-               WHEN Dias_mora_Lunes_14_30 IS NOT NULL THEN 'Dias_mora_Lunes_14_30'
-               WHEN Dias_mora_Lunes_13_30 IS NOT NULL THEN 'Dias_mora_Lunes_13_30'
-               WHEN Dias_mora_Lunes_11_30 IS NOT NULL THEN 'Dias_mora_Lunes_11_30'
-               WHEN Dias_mora_Lunes_09_30 IS NOT NULL THEN 'Dias_mora_Lunes_09_30'
-               WHEN Dias_mora_Lunes_07_30 IS NOT NULL THEN 'Dias_mora_Lunes_07_30'
-               ELSE NULL
-           END
-       ) AS ultima_columna_llena
-       FROM tbl_segundometro_semana;
+        SELECT nombre_columna
+        FROM (
+            -- Martes
+            SELECT 'Dias_mora_Martes_07_30' AS nombre_columna, Dias_mora_Martes_07_30 AS valor,
+                   STR_TO_DATE(CONCAT('2025-08-27 07:30'), '%Y-%m-%d %H:%i') AS fecha_real FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Martes_09_30', Dias_mora_Martes_09_30, STR_TO_DATE(CONCAT('2025-08-27 09:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Martes_11_30', Dias_mora_Martes_11_30, STR_TO_DATE(CONCAT('2025-08-27 11:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Martes_13_30', Dias_mora_Martes_13_30, STR_TO_DATE(CONCAT('2025-08-27 13:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Martes_14_30', Dias_mora_Martes_14_30, STR_TO_DATE(CONCAT('2025-08-27 14:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Martes_16_30', Dias_mora_Martes_16_30, STR_TO_DATE(CONCAT('2025-08-27 16:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Martes_18_30', Dias_mora_Martes_18_30, STR_TO_DATE(CONCAT('2025-08-27 18:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Martes_20_30', Dias_mora_Martes_20_30, STR_TO_DATE(CONCAT('2025-08-27 20:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+
+            -- Miércoles
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_07_30', Dias_mora_Miercoles_07_30, STR_TO_DATE(CONCAT('2025-08-28 07:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_09_30', Dias_mora_Miercoles_09_30, STR_TO_DATE(CONCAT('2025-08-28 09:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_11_30', Dias_mora_Miercoles_11_30, STR_TO_DATE(CONCAT('2025-08-28 11:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_13_30', Dias_mora_Miercoles_13_30, STR_TO_DATE(CONCAT('2025-08-28 13:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_14_30', Dias_mora_Miercoles_14_30, STR_TO_DATE(CONCAT('2025-08-28 14:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_16_30', Dias_mora_Miercoles_16_30, STR_TO_DATE(CONCAT('2025-08-28 16:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_18_30', Dias_mora_Miercoles_18_30, STR_TO_DATE(CONCAT('2025-08-28 18:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Miercoles_20_30', Dias_mora_Miercoles_20_30, STR_TO_DATE(CONCAT('2025-08-28 20:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+
+            -- Jueves
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_07_30', Dias_mora_Jueves_07_30, STR_TO_DATE(CONCAT('2025-08-29 07:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_09_30', Dias_mora_Jueves_09_30, STR_TO_DATE(CONCAT('2025-08-29 09:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_11_30', Dias_mora_Jueves_11_30, STR_TO_DATE(CONCAT('2025-08-29 11:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_13_30', Dias_mora_Jueves_13_30, STR_TO_DATE(CONCAT('2025-08-29 13:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_14_30', Dias_mora_Jueves_14_30, STR_TO_DATE(CONCAT('2025-08-29 14:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_16_30', Dias_mora_Jueves_16_30, STR_TO_DATE(CONCAT('2025-08-29 16:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_18_30', Dias_mora_Jueves_18_30, STR_TO_DATE(CONCAT('2025-08-29 18:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Jueves_20_30', Dias_mora_Jueves_20_30, STR_TO_DATE(CONCAT('2025-08-29 20:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+
+            -- Viernes
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_07_30', Dias_mora_Viernes_07_30, STR_TO_DATE(CONCAT('2025-08-30 07:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_09_30', Dias_mora_Viernes_09_30, STR_TO_DATE(CONCAT('2025-08-30 09:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_11_30', Dias_mora_Viernes_11_30, STR_TO_DATE(CONCAT('2025-08-30 11:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_13_30', Dias_mora_Viernes_13_30, STR_TO_DATE(CONCAT('2025-08-30 13:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_14_30', Dias_mora_Viernes_14_30, STR_TO_DATE(CONCAT('2025-08-30 14:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_16_30', Dias_mora_Viernes_16_30, STR_TO_DATE(CONCAT('2025-08-30 16:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_18_30', Dias_mora_Viernes_18_30, STR_TO_DATE(CONCAT('2025-08-30 18:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Viernes_20_30', Dias_mora_Viernes_20_30, STR_TO_DATE(CONCAT('2025-08-30 20:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+
+            -- Sábado
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_07_30', Dias_mora_Sabado_07_30, STR_TO_DATE(CONCAT('2025-08-31 07:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_09_30', Dias_mora_Sabado_09_30, STR_TO_DATE(CONCAT('2025-08-31 09:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_11_30', Dias_mora_Sabado_11_30, STR_TO_DATE(CONCAT('2025-08-31 11:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_13_30', Dias_mora_Sabado_13_30, STR_TO_DATE(CONCAT('2025-08-31 13:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_14_30', Dias_mora_Sabado_14_30, STR_TO_DATE(CONCAT('2025-08-31 14:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_16_30', Dias_mora_Sabado_16_30, STR_TO_DATE(CONCAT('2025-08-31 16:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_18_30', Dias_mora_Sabado_18_30, STR_TO_DATE(CONCAT('2025-08-31 18:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Sabado_20_30', Dias_mora_Sabado_20_30, STR_TO_DATE(CONCAT('2025-08-31 20:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+
+            -- Domingo
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_07_30', Dias_mora_Domingo_07_30, STR_TO_DATE(CONCAT('2025-09-01 07:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_09_30', Dias_mora_Domingo_09_30, STR_TO_DATE(CONCAT('2025-09-01 09:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_11_30', Dias_mora_Domingo_11_30, STR_TO_DATE(CONCAT('2025-09-01 11:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_13_30', Dias_mora_Domingo_13_30, STR_TO_DATE(CONCAT('2025-09-01 13:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_14_30', Dias_mora_Domingo_14_30, STR_TO_DATE(CONCAT('2025-09-01 14:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_16_30', Dias_mora_Domingo_16_30, STR_TO_DATE(CONCAT('2025-09-01 16:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_18_30', Dias_mora_Domingo_18_30, STR_TO_DATE(CONCAT('2025-09-01 18:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_20_30', Dias_mora_Domingo_20_30, STR_TO_DATE(CONCAT('2025-09-01 20:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Domingo_23_50', Dias_mora_Domingo_23_50, STR_TO_DATE(CONCAT('2025-09-01 23:50'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+
+            -- Lunes
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_07_30', Dias_mora_Lunes_07_30, STR_TO_DATE(CONCAT('2025-09-02 07:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_09_30', Dias_mora_Lunes_09_30, STR_TO_DATE(CONCAT('2025-09-02 09:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_11_30', Dias_mora_Lunes_11_30, STR_TO_DATE(CONCAT('2025-09-02 11:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_13_30', Dias_mora_Lunes_13_30, STR_TO_DATE(CONCAT('2025-09-02 13:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_14_30', Dias_mora_Lunes_14_30, STR_TO_DATE(CONCAT('2025-09-02 14:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_16_30', Dias_mora_Lunes_16_30, STR_TO_DATE(CONCAT('2025-09-02 16:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_18_30', Dias_mora_Lunes_18_30, STR_TO_DATE(CONCAT('2025-09-02 18:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+            UNION ALL
+            SELECT 'Dias_mora_Lunes_20_30', Dias_mora_Lunes_20_30, STR_TO_DATE(CONCAT('2025-09-02 20:30'), '%Y-%m-%d %H:%i') FROM tbl_segundometro_semana
+
+        ) t
+        WHERE valor IS NOT NULL
+        ORDER BY fecha_real DESC
+        LIMIT 1;
     """)
     ultima_columna_raw = cursor.fetchone()[0]
     cursor.close()
@@ -154,6 +218,7 @@ def index():
         hora_consulta=hora_consulta,
         status=status
     )
+
 # ---------------------------
 # DOWNLOAD
 # ---------------------------
