@@ -153,7 +153,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
 
     # 2️⃣ Obtener los datos de Google filtrados por la última columna
     query_google = f"""
-        SELECT Id_credito || '_' || Id_cliente AS id_original, Celular AS Telefono, 'Transferencia' as fideicomiso, Id_cliente AS mkm,
+        SELECT CONCAT(Id_credito, '_', Id_cliente) AS id_original, Celular AS Telefono, 'Transferencia' as fideicomiso, Id_cliente AS mkm,
                Id_credito AS id_credit, nombre_cliente AS nombre, 1 AS pagos_vencidos,
                saldo_vencido_inicio AS monto_vencido,
                '' AS bucket, '' AS fecha_de_pago, '' AS telefono_1,
