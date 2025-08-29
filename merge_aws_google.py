@@ -153,14 +153,14 @@ def merge_aws_google_batch(batch_size=5000, page=1):
 
     # 2️⃣ Obtener los datos de Google filtrados por la última columna
     query_google = f"""
-        SELECT KT AS id_original, Celular AS Telefono, 'Transferencia' as fideicomiso, Id_cliente AS mkm,
+        SELECT Id_credito || '_' || Id_cliente AS id_original, Celular AS Telefono, 'Transferencia' as fideicomiso, Id_cliente AS mkm,
                Id_credito AS id_credit, nombre_cliente AS nombre, 1 AS pagos_vencidos,
                saldo_vencido_inicio AS monto_vencido,
                '' AS bucket, '' AS fecha_de_pago, '' AS telefono_1,
                'Transferencia' AS tipoo_de_pago, Referencia_stp AS clabe,
                'STP' AS banco, '' AS atributo_segmento
         FROM tbl_segundometro_semana
-        WHERE {ultima_columna} BETWEEN 1 AND 7
+        WHERE {ultima_columna} BETWEEN 1 AND 7 AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
         ORDER BY KT
         LIMIT {batch_size} OFFSET {offset}
     """
