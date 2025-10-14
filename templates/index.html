@@ -13,6 +13,23 @@ body {
     margin: 0;
     padding: 0;
 }
+
+/* === BANNER / HEADER === */
+.header-bar {
+    background-color: #ffffff;
+    border-bottom: 2px solid #dee2e6;
+    padding: 10px 25px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.header-bar .logo {
+    height: 55px;
+}
+.logout-btn {
+    margin-left: 10px;
+    border-radius: 8px;
+}
+
+/* === CONTENIDO PRINCIPAL === */
 .container {
     max-width: 700px;
     margin: 50px auto;
@@ -22,7 +39,7 @@ body {
     box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
     text-align: center;
 }
-h1 {
+h2 {
     color: #333;
     margin-bottom: 20px;
 }
@@ -46,18 +63,32 @@ button:hover {
 </style>
 </head>
 <body>
-<!-- Barra superior -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">Reporte Segundometro</a>
-    <div class="d-flex">
-      <a href="/logout" class="btn btn-outline-danger">Salir</a>
-    </div>
-  </div>
-</nav>
 
+<!-- ======= BANNER SUPERIOR ======= -->
+<div class="header-bar d-flex justify-content-between align-items-center">
+  <div class="d-flex align-items-center">
+    <img src="https://maxikash.mx/cdn/shop/files/Logotipo-Maxikash-Outline.png?v=1749328460" 
+         alt="Logo" class="logo me-3">
+    <h5 class="m-0 fw-bold text-primary">Reporte Segundometro</h5>
+  </div>
+
+  {% if session.get('usuario') %}
+  <div class="text-end">
+    <small class="text-secondary">
+      <a href="/busqueda_base_cliente" class="btn btn-outline-secondary logout-btn" title="S">
+        <span class="fw-bold">S</span>
+      </a>
+      <a href="/documentos" class="btn btn-outline-primary logout-btn">Consulta Documentos</a>
+      <a href="/logout" class="btn btn-outline-danger logout-btn">Cerrar sesión</a>
+    </small>
+  </div>
+  {% endif %}
+</div>
+<div><br></div>
+
+<!-- ======= CONTENIDO CENTRAL ======= -->
 <div class="container">
-    <h2>Reporte Segundometro Ultimo Corte</h2>
+    <h2>Reporte Segundometro Último Corte</h2>
     <hr>
     <p><strong>Último corte:</strong>  {{ ultima_columna }}</p>
     <p><strong>Hora de consulta:</strong> {{ hora_consulta }}</p>
@@ -66,6 +97,7 @@ button:hover {
     <p id="statusMsg" style="display:none; margin-top:15px; color:#007BFF;"></p>
 </div>
 
+<!-- ======= SCRIPT DE DESCARGA ======= -->
 <script>
 const nombreArchivo = "{{ ultima_columna }}";  // tomado de Flask
 
@@ -87,7 +119,7 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = nombreArchivo + ".xlsx";  // usamos el nombre dinámico
+        a.download = nombreArchivo + ".xlsx";
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -100,5 +132,6 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
     }
 });
 </script>
+
 </body>
 </html>
