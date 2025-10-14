@@ -153,7 +153,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
 
     # 2️⃣ Obtener los datos de Google filtrados por la última columna
     query_google = f"""
-        SELECT 
+       SELECT 
         CONCAT(Id_credito, '_', Id_cliente) AS id_original, 
         Celular AS Telefono, 
         'Transferencia' AS fideicomiso, 
@@ -173,7 +173,6 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     WHERE 
         {ultima_columna} BETWEEN 1 AND 7
         AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
-        AND (Saldo_Vencido_actualizado - Cuota) > 50
     ORDER BY KT
     LIMIT {batch_size} OFFSET {offset};
     """
