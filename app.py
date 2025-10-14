@@ -4,6 +4,8 @@ from db_connection_google import get_connection_google, close_connection_google
 import os
 from datetime import datetime
 from merge_aws_google import merge_aws_google_batch
+from merge_aws_google_dos import merge_aws_google_batch_dos
+from merge_aws_google_tres import merge_aws_google_batch_tres
 from io import BytesIO
 import pandas as pd
 from datetime import datetime
@@ -502,7 +504,7 @@ def clientes_pago_corriente():
 def download_clientes_pago_corriente():
     try:
         # Aquí llamas a tu función que devuelve el DataFrame
-        df = merge_aws_google_batch(batch_size=5000, page=1)  # Cambiar si hay función específica
+        df = merge_aws_google_batch_dos(batch_size=5000, page=1)  # Cambiar si hay función específica
         output = BytesIO()
         nombre_archivo = session.get("clientes_pago_corriente", f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
 
@@ -546,7 +548,7 @@ def primeros_pagos():
 def download_primeros_pagos():
     try:
         # Aquí llamas a tu función que devuelve el DataFrame
-        df = merge_aws_google_batch(batch_size=5000, page=1)  # Cambiar si hay función específica
+        df = merge_aws_google_batch_tres(batch_size=5000, page=1)  # Cambiar si hay función específica
         output = BytesIO()
         nombre_archivo = session.get("primeros_pagos", f"PrimerosPagos_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
 
