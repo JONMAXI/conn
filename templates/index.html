@@ -72,17 +72,14 @@ button:hover {
     <h5 class="m-0 fw-bold text-primary">Reporte Segundometro</h5>
   </div>
 
-  {% if session.get('usuario') %}
-  <div class="text-end">
+   <div class="text-end">
     <small class="text-secondary">
-      <a href="/busqueda_base_cliente" class="btn btn-outline-secondary logout-btn" title="S">
-        <span class="fw-bold">S</span>
-      </a>
-      <a href="/documentos" class="btn btn-outline-primary logout-btn">Consulta Documentos</a>
+      <a href="/documentos" class="btn btn-outline-primary logout-btn">Clientes Pago Corriente</a>
+      <a href="/documentos" class="btn btn-outline-primary logout-btn">Primeros Pagos</a>
       <a href="/logout" class="btn btn-outline-danger logout-btn">Cerrar sesión</a>
     </small>
   </div>
-  {% endif %}
+
 </div>
 <div><br></div>
 
