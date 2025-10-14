@@ -479,6 +479,92 @@ def ejecutar_bonos():
     return jsonify({"status":"ok","logs":logs})
   
 
+  # ---------------------------
+@app.route("/clientes_pago_corriente")
+def clientes_pago_corriente():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    # Nombre del archivo dinámico
+    nombre_archivo = f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+    session["clientes_pago_corriente"] = nombre_archivo
+
+    hora_consulta = datetime.now(pytz.timezone("America/Mexico_City")).strftime("%Y-%m-%d %H:%M:%S")
+
+    return render_template(
+        "descarga.html",
+        titulo="Clientes Pago Corriente",
+        nombre_archivo=nombre_archivo,
+        hora_consulta=hora_consulta
+    )
+
+@app.route("/download/clientes_pago_corriente")
+def download_clientes_pago_corriente():
+    try:
+        # Aquí llamas a tu función que devuelve el DataFrame
+        df = merge_aws_google_batch(batch_size=5000, page=1)  # Cambiar si hay función específica
+        output = BytesIO()
+        nombre_archivo = session.get("clientes_pago_corriente", f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
+
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='ClientesPagoCorriente')
+
+        output.seek(0)
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"{nombre_archivo}.xlsx",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
+
+
+# ---------------------------
+# PRIMEROS PAGOS
+# ---------------------------
+@app.route("/primeros_pagos")
+def primeros_pagos():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    nombre_archivo = f"PrimerosPagos_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+    session["primeros_pagos"] = nombre_archivo
+
+    hora_consulta = datetime.now(pytz.timezone("America/Mexico_City")).strftime("%Y-%m-%d %H:%M:%S")
+
+    return render_template(
+        "descarga.html",
+        titulo="Primeros Pagos",
+        nombre_archivo=nombre_archivo,
+        hora_consulta=hora_consulta
+    )
+
+@app.route("/download/primeros_pagos")
+def download_primeros_pagos():
+    try:
+        # Aquí llamas a tu función que devuelve el DataFrame
+        df = merge_aws_google_batch(batch_size=5000, page=1)  # Cambiar si hay función específica
+        output = BytesIO()
+        nombre_archivo = session.get("primeros_pagos", f"PrimerosPagos_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
+
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='PrimerosPagos')
+
+        output.seek(0)
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"{nombre_archivo}.xlsx",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
+
 
 # ---------------------------
 # Main
