@@ -76,7 +76,6 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
     FROM tbl_segundometro_semana
     WHERE 
         {ultima_columna} = 0
-        AND SEMANA = 'Semana 41-2025'
         OR (Saldo_Vencido_actualizado) <= 50
     ORDER BY KT
     LIMIT {batch_size} OFFSET {offset};
