@@ -494,7 +494,7 @@ def clientes_pago_corriente():
     hora_consulta = datetime.now(pytz.timezone("America/Mexico_City")).strftime("%Y-%m-%d %H:%M:%S")
 
     return render_template(
-        "descarga.html",
+        "primeros_pagos.html",
         titulo="Clientes Pago Corriente",
         nombre_archivo=nombre_archivo,
         hora_consulta=hora_consulta
@@ -538,7 +538,7 @@ def primeros_pagos():
     hora_consulta = datetime.now(pytz.timezone("America/Mexico_City")).strftime("%Y-%m-%d %H:%M:%S")
 
     return render_template(
-        "descarga.html",
+        "clientes_pago_corriente.html",
         titulo="Primeros Pagos",
         nombre_archivo=nombre_archivo,
         hora_consulta=hora_consulta
