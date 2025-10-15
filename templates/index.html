@@ -131,5 +131,39 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
 });
 </script>
 
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnClientes = document.querySelector('a[href="/clientes_pago_corriente"]');
+    const btnPrimeros = document.querySelector('a[href="/primeros_pagos"]');
+
+    btnClientes.addEventListener('click', (e) => {
+      const today = new Date().getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+      if (today !== 1) { // si NO es lunes
+        e.preventDefault();
+        Swal.fire({
+          icon: 'warning',
+          title: 'Atención',
+          text: 'Clientes Pago Corriente solo se puede consultar el día lunes',
+        });
+      }
+    });
+
+    btnPrimeros.addEventListener('click', (e) => {
+      const today = new Date().getDay();
+      if (today !== 4 && today !== 5 && today !== 6 && today !== 0) {
+        // si NO es jueves(4), viernes(5), sábado(6) o domingo(0)
+        e.preventDefault();
+        Swal.fire({
+          icon: 'warning',
+          title: 'Atención',
+          text: 'Primeros Pagos solo se puede consultar jueves, viernes, sábado o domingo',
+        });
+      }
+    });
+  });
+</script>
+
 </body>
 </html>
