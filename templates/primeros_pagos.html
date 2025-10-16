@@ -40,10 +40,25 @@ button:hover { background-color:#0056b3; }
 <div class="container">
     <h2>Primeros Pagos</h2>
     <hr>
-    <p><strong>Hora de consulta:</strong> 2025-10-14 13:00:00</p>
+    <p><strong>Hora de consulta:</strong> <span id="horaConsulta"></span></p>
     <button id="downloadBtn">Descargar archivo</button>
     <p id="statusMsg" style="display:none; margin-top:15px; color:#007BFF;"></p>
 </div>
+
+<script>
+// Mostrar hora actual de consulta
+document.addEventListener('DOMContentLoaded', () => {
+  const horaElem = document.getElementById('horaConsulta');
+  const now = new Date();
+  const formatted = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0') + ' ' +
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0') + ':' +
+    String(now.getSeconds()).padStart(2, '0');
+  horaElem.textContent = formatted;
+});
+</script>
 
 <script>
 document.getElementById('downloadBtn').addEventListener('click', async () => {
