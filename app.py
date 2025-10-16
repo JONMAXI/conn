@@ -10,9 +10,13 @@ from io import BytesIO
 import pandas as pd
 from datetime import datetime
 import pytz
+from api_service import api
 
-app = Flask(__name__)
+app = Flask(__name__)  # 👈 Debe ir primero
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey123")  # Para sesiones
+
+# Registrar blueprint de API
+app.register_blueprint(api)
 
 # ---------------------------
 # LOGIN
