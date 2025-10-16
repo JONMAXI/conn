@@ -169,10 +169,8 @@ def merge_aws_google_batch_tres(batch_size=5000, page=1):
         Referencia_stp AS clabe,
         'STP' AS banco, 
         '' AS atributo_segmento
-    FROM tbl_segundometro_semana
-    WHERE 
-        {ultima_columna} BETWEEN 1 AND 7
-        AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
+    FROM segundometro_histo_kronos
+    WHERE YEARWEEK(Fecha_primer_vencimiento, 1) > YEARWEEK(CURDATE(), 1);
     ORDER BY KT
     LIMIT {batch_size} OFFSET {offset};
     """
