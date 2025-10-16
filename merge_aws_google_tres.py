@@ -163,7 +163,7 @@ def merge_aws_google_batch_tres(batch_size=5000, page=1):
         1 AS pagos_vencidos,
         saldo_vencido_inicio AS monto_vencido,
         '' AS bucket, 
-        '' AS fecha_de_pago, 
+        Fecha_primer_vencimiento AS fecha_de_pago, 
         '' AS telefono_1,
         'Transferencia' AS tipoo_de_pago, 
         Referencia_stp AS clabe,
