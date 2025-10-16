@@ -161,7 +161,7 @@ def merge_aws_google_batch_tres(batch_size=5000, page=1):
         Id_credito AS id_credit, 
         nombre_cliente AS nombre, 
         0 AS pagos_vencidos,
-        saldo_vencido_inicio AS monto_vencido,
+        Cuota AS monto_por_vencer,
         '' AS bucket, 
         Fecha_primer_vencimiento AS fecha_de_pago, 
         '' AS telefono_1,
