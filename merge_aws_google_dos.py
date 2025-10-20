@@ -1,6 +1,7 @@
 import pandas as pd
 from db_connection import get_connection, close_connection          # AWS
 from db_connection_google import get_connection_google, close_connection_google  # Google
+from datetime import datetime
 
 def merge_aws_google_batch_dos(batch_size=5000, page=1):
     """
