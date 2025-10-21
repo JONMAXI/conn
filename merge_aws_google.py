@@ -173,8 +173,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     WHERE 
         {ultima_columna} BETWEEN 1 AND 7
         AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
-    ORDER BY KT
-    LIMIT {batch_size} OFFSET {offset};
+    ORDER BY KT;
     """
     df_google = pd.read_sql(query_google, conn_google)
     close_connection_google(conn_google)
