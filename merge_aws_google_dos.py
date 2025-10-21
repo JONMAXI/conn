@@ -51,7 +51,6 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
         WHERE valor IS NOT NULL
         ORDER BY ABS(TIMESTAMPDIFF(MINUTE, fecha_real, NOW())) ASC
         LIMIT 1;
-
     """
     ultima_columna = pd.read_sql(query_ultima_columna, conn_google).iloc[0, 0]
 
@@ -98,8 +97,8 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
                CONCAT(p2.nombre_referencia1, ' ', p2.apellido_paterno_referencia1, ' ', p2.apellido_materno_referencia1) AS nombre_completo_referencia1,
                p2.telefono_referencia1,
                CONCAT(p2.nombre_referencia2, ' ', p2.apellido_paterno_referencia2, ' ', p2.apellido_materno_referencia2) AS nombre_completo_referencia2,
-               p2.telefono_referencia2, '' as nombre_referencia_3, '' as telefono_referencia_3, 0 as Motivo_de_no_Pago, 0 as cuando_le_pagan, 0 as Giro_de_Trabajo, 0 as hora_de_pago
-
+               p2.telefono_referencia2, '' as nombre_referencia_3, '' as telefono_referencia_3, 
+               0 as Motivo_de_no_Pago, 0 as cuando_le_pagan, 0 as Giro_de_Trabajo, 0 as hora_de_pago
         FROM oferta o
         INNER JOIN persona p ON o.fk_persona = p.id_persona
         LEFT JOIN persona_adicionales p2 ON p2.fk_persona = p.id_persona
@@ -124,8 +123,30 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
     return df_merged
 
 
+# 🔁 NUEVA FUNCIÓN: recorre todas las páginas automáticamente
+def merge_aws_google_full(batch_size=5000):
+    page = 1
+    all_data = []
+
+    while True:
+        print(f"Descargando lote {page}...")
+        df_batch = merge_aws_google_batch_dos(batch_size=batch_size, page=page)
+        if df_batch.empty:
+            break
+        all_data.append(df_batch)
+        page += 1
+
+    if not all_data:
+        print("No se obtuvieron datos.")
+        return pd.DataFrame()
+
+    df_final = pd.concat(all_data, ignore_index=True)
+    print(f"✅ Descarga completa: {len(df_final)} registros en total.")
+    return df_final
+
+
 # ------------------------------
 # Alias de compatibilidad
 # ------------------------------
 def merge_aws_google():
-    return merge_aws_google_batch(batch_size=5000, page=1)
+    return merge_aws_google_full(batch_size=5000)
