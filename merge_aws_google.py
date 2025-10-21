@@ -172,7 +172,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     FROM tbl_segundometro_semana
     WHERE 
         {ultima_columna} BETWEEN 1 AND 7
-        AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
+       
     ORDER BY KT
     LIMIT {batch_size} OFFSET {offset};
     """
