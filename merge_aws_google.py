@@ -168,7 +168,15 @@ def merge_aws_google_batch(batch_size=5000, page=1):
         'Transferencia' AS tipoo_de_pago, 
         Referencia_stp AS clabe,
         'STP' AS banco, 
-        '' AS atributo_segmento
+        '' AS atributo_segmento,
+
+        CASE 
+            WHEN Fecha_primer_vencimiento >= DATE_ADD(CURDATE(), INTERVAL (2 - DAYOFWEEK(CURDATE())) DAY)
+             AND Fecha_primer_vencimiento <  DATE_ADD(CURDATE(), INTERVAL (9 - DAYOFWEEK(CURDATE())) DAY)
+            THEN 'Sí'
+            ELSE ''
+        END AS primeros_pagos
+
     FROM tbl_segundometro_semana
     WHERE 
         {ultima_columna} BETWEEN 1 AND 7
