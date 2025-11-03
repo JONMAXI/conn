@@ -552,7 +552,7 @@ def primeros_pagos():
 def download_primeros_pagos():
     try:
         # Aquí llamas a tu función que devuelve el DataFrame
-        df = merge_aws_google_batch_tres(batch_size=5000, page=1)  # Cambiar si hay función específica
+        df = merge_aws_google_batch_tres(batch_size=15000, page=1)  # Cambiar si hay función específica
         output = BytesIO()
         nombre_archivo = session.get("primeros_pagos", f"PrimerosPagos_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
 
