@@ -4,7 +4,7 @@ from db_connection_google import get_connection_google, close_connection_google
 import os
 from datetime import datetime
 from merge_aws_google import merge_aws_google_batch
-from merge_aws_google_dos import merge_aws_google_batch_dos
+from merge_aws_google_dos import merge_aws_google_batch_dos, merge_aws_google_full
 from merge_aws_google_tres import merge_aws_google_batch_tres
 from io import BytesIO
 import pandas as pd
