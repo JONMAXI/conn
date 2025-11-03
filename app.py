@@ -507,18 +507,42 @@ def clientes_pago_corriente():
 @app.route("/download/clientes_pago_corriente")
 def download_clientes_pago_corriente():
     try:
-        # Descarga todos los registros
-        df = merge_aws_google_full(batch_size=5000)
-
+        batch_size = 5000
+        page = 1
         output = BytesIO()
+
+        # Nombre dinámico de sesión
         nombre_archivo = session.get(
             "clientes_pago_corriente",
             f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
         )
 
+        # Creamos el ExcelWriter
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='ClientesPagoCorriente')
+            first_page = True
 
+            while True:
+                # Traemos un batch
+                df = merge_aws_google_batch_dos(batch_size=batch_size, page=page)
+                if df.empty:
+                    break  # No hay más registros
+
+                # Calculamos fila inicial para no sobreescribir
+                startrow = (page - 1) * batch_size
+
+                # Escribimos al Excel
+                df.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name='ClientesPagoCorriente',
+                    startrow=startrow if not first_page else 0,
+                    header=first_page
+                )
+
+                first_page = False
+                page += 1
+
+        # Preparamos el archivo para descarga
         output.seek(0)
         return send_file(
             output,
@@ -526,6 +550,7 @@ def download_clientes_pago_corriente():
             download_name=f"{nombre_archivo}.xlsx",
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
+
     except Exception as e:
         import traceback
         print(traceback.format_exc())
