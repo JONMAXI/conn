@@ -4,7 +4,7 @@ from db_connection_google import get_connection_google, close_connection_google
 import os
 from datetime import datetime
 from merge_aws_google import merge_aws_google_batch
-from merge_aws_google_dos import merge_aws_google_batch_dos, merge_aws_google_full
+from merge_aws_google_dos import merge_aws_google_batch_dos
 from merge_aws_google_tres import merge_aws_google_batch_tres
 from io import BytesIO
 import pandas as pd
@@ -484,7 +484,8 @@ def ejecutar_bonos():
 
     return jsonify({"status":"ok","logs":logs})
   
-# ---------------------------
+
+  # ---------------------------
 @app.route("/clientes_pago_corriente")
 def clientes_pago_corriente():
     if "user_id" not in session:
@@ -503,19 +504,13 @@ def clientes_pago_corriente():
         hora_consulta=hora_consulta
     )
 
-
 @app.route("/download/clientes_pago_corriente")
 def download_clientes_pago_corriente():
     try:
-        # Llamar a la función completa con batch_size dinámico
-        batch_size = 5000  # o cualquier valor que quieras, incluso podrías pasarlo por query params
-        df = merge_aws_google_full(batch_size=batch_size)  
-
+        # Aquí llamas a tu función que devuelve el DataFrame
+        df = merge_aws_google_batch_dos(batch_size=5000, page=1)  # Cambiar si hay función específica
         output = BytesIO()
-        nombre_archivo = session.get(
-            "clientes_pago_corriente",
-            f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
-        )
+        nombre_archivo = session.get("clientes_pago_corriente", f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
 
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='ClientesPagoCorriente')
@@ -527,12 +522,10 @@ def download_clientes_pago_corriente():
             download_name=f"{nombre_archivo}.xlsx",
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-
     except Exception as e:
         import traceback
         print(traceback.format_exc())
         return jsonify({"message": f"Error al generar el archivo: {str(e)}"}), 500
-
 
 
 # ---------------------------
@@ -559,7 +552,7 @@ def primeros_pagos():
 def download_primeros_pagos():
     try:
         # Aquí llamas a tu función que devuelve el DataFrame
-        df = merge_aws_google_batch_tres(batch_size=70000, page=1)  # Cambiar si hay función específica
+        df = merge_aws_google_batch_tres(batch_size=5000, page=1)  # Cambiar si hay función específica
         output = BytesIO()
         nombre_archivo = session.get("primeros_pagos", f"PrimerosPagos_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
 
