@@ -4,7 +4,7 @@ from db_connection_google import get_connection_google, close_connection_google
 import os
 from datetime import datetime
 from merge_aws_google import merge_aws_google_batch
-from merge_aws_google_dos import merge_aws_google_full
+from merge_aws_google_dos import merge_aws_google_batch_dos
 from merge_aws_google_tres import merge_aws_google_batch_tres
 from io import BytesIO
 import pandas as pd
@@ -507,33 +507,21 @@ def clientes_pago_corriente():
 @app.route("/download/clientes_pago_corriente")
 def download_clientes_pago_corriente():
     try:
-        # 🚀 Trae todos los registros recorriendo todas las páginas
-        df = merge_aws_google_full(batch_size=5000)
-
-        # Si no hay datos, devuelve un mensaje amigable
-        if df.empty:
-            return jsonify({"message": "No se encontraron datos para generar el archivo"}), 400
-
+        # Aquí llamas a tu función que devuelve el DataFrame
+        df = merge_aws_google_batch_dos(batch_size=5000, page=1)  # Cambiar si hay función específica
         output = BytesIO()
-        nombre_archivo = session.get(
-            "clientes_pago_corriente",
-            f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
-        )
+        nombre_archivo = session.get("clientes_pago_corriente", f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
 
-        # Crear Excel
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='ClientesPagoCorriente')
 
         output.seek(0)
-
-        # Enviar archivo
         return send_file(
             output,
             as_attachment=True,
             download_name=f"{nombre_archivo}.xlsx",
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
-
     except Exception as e:
         import traceback
         print(traceback.format_exc())
