@@ -508,7 +508,7 @@ def clientes_pago_corriente():
 def download_clientes_pago_corriente():
     try:
         # Aquí llamas a tu función que devuelve el DataFrame
-        df = merge_aws_google_batch_dos(batch_size=15000, page=1)  # Cambiar si hay función específica
+        df = merge_aws_google_batch_dos(batch_size=75000, page=1)  # Cambiar si hay función específica
         output = BytesIO()
         nombre_archivo = session.get("clientes_pago_corriente", f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
 
