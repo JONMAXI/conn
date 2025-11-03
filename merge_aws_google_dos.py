@@ -2,7 +2,7 @@ import pandas as pd
 from db_connection import get_connection, close_connection          # AWS
 from db_connection_google import get_connection_google, close_connection_google  # Google
 
-def merge_aws_google_batch_dos(batch_size=75000, page=1):
+def merge_aws_google_batch_dos(batch_size, page=1):
     """
     Obtiene datos de Google Cloud SQL y AWS RDS en batches para evitar saturar Cloud Run.
     Retorna un DataFrame de pandas con los datos combinados de la página solicitada.
@@ -124,7 +124,7 @@ def merge_aws_google_batch_dos(batch_size=75000, page=1):
 
 
 # 🔁 NUEVA FUNCIÓN: recorre todas las páginas automáticamente
-def merge_aws_google_full(batch_size=75000):
+def merge_aws_google_full(batch_size=5000):
     page = 1
     all_data = []
 
@@ -146,7 +146,7 @@ def merge_aws_google_full(batch_size=75000):
 
 
 # ------------------------------
-# Alias de compatibilidad
+# Alias de compatibilidad dinámico
 # ------------------------------
-def merge_aws_google():
-    return merge_aws_google_full(batch_size=75000)
+def merge_aws_google(batch_size=5000):
+    return merge_aws_google_full(batch_size=batch_size)
