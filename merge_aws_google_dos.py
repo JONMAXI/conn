@@ -77,7 +77,6 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
         {ultima_columna} = 0
         OR (Saldo_Vencido_actualizado) <= 50
     ORDER BY KT
-    LIMIT {batch_size} OFFSET {offset};
     """
     df_google = pd.read_sql(query_google, conn_google)
     close_connection_google(conn_google)
