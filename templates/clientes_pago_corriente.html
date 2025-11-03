@@ -24,7 +24,7 @@ button:hover { background-color:#0056b3; }
     <h5 class="m-0 fw-bold text-primary">Reporte Segundometro</h5>
   </div>
 
-   <div class="text-end">
+  <div class="text-end">
     <small class="text-secondary">
       <a href="/index" class="btn btn-outline-primary logout-btn">Último Corte Segundometro</a>
       <a href="/clientes_pago_corriente" class="btn btn-outline-primary logout-btn">Clientes Pago Corriente</a>
@@ -32,27 +32,57 @@ button:hover { background-color:#0056b3; }
       <a href="/logout" class="btn btn-outline-danger logout-btn">Cerrar sesión</a>
     </small>
   </div>
-
 </div>
+
 <div><br></div>
 
 <div class="container">
     <h2>Clientes Pago Corriente</h2>
     <hr>
-    <p><strong>Hora de consulta:</strong> 2025-10-14 13:00:00</p>
+    <p><strong>Hora de consulta:</strong> <span id="horaConsulta"></span></p>
     <button id="downloadBtn">Descargar archivo</button>
-    <p id="statusMsg" style="display:none; margin-top:15px; color:#007BFF;"></p>
 </div>
 
+<!-- Modal Loader -->
+<div class="modal fade" id="loaderModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:transparent; border:none; box-shadow:none;">
+      <div class="d-flex justify-content-center align-items-center p-5">
+        <div class="spinner-border text-primary" role="status" style="width:4rem; height:4rem;">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-document.getElementById('downloadBtn').addEventListener('click', async () => {
-    const statusMsg = document.getElementById('statusMsg');
-    statusMsg.style.display = 'block';
-    statusMsg.textContent = 'Procesando archivo...';
+  // ====== Hora dinámica ======
+  function actualizarHora() {
+    const ahora = new Date();
+    const formato = ahora.getFullYear() + '-' +
+                    String(ahora.getMonth()+1).padStart(2,'0') + '-' +
+                    String(ahora.getDate()).padStart(2,'0') + ' ' +
+                    String(ahora.getHours()).padStart(2,'0') + ':' +
+                    String(ahora.getMinutes()).padStart(2,'0') + ':' +
+                    String(ahora.getSeconds()).padStart(2,'0');
+    document.getElementById('horaConsulta').textContent = formato;
+  }
+  actualizarHora();
+  setInterval(actualizarHora, 1000);
+
+  // ====== Descargar archivo con modal loader ======
+  document.getElementById('downloadBtn').addEventListener('click', async () => {
+    const loaderModal = new bootstrap.Modal(document.getElementById('loaderModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+    loaderModal.show();
 
     try {
         const res = await fetch('/download/clientes_pago_corriente');
-        statusMsg.textContent = 'Construyendo archivo...';
 
         if (!res.ok) {
             const text = await res.text();
@@ -69,17 +99,14 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
         a.remove();
         window.URL.revokeObjectURL(url);
 
-        statusMsg.style.display = 'none';
+        loaderModal.hide();
     } catch (err) {
-        statusMsg.textContent = '';
+        loaderModal.hide();
         alert('Error al descargar el archivo: ' + err.message);
     }
-});
-</script>
+  });
 
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
+  // ====== Restricciones de días para los botones ======
   document.addEventListener('DOMContentLoaded', () => {
     const btnClientes = document.querySelector('a[href="/clientes_pago_corriente"]');
     const btnPrimeros = document.querySelector('a[href="/primeros_pagos"]');
@@ -110,6 +137,9 @@ document.getElementById('downloadBtn').addEventListener('click', async () => {
     });
   });
 </script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 </body>
 </html>
