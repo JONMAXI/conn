@@ -1,14 +1,13 @@
 import pandas as pd
 from db_connection import get_connection, close_connection          # AWS
 from db_connection_google import get_connection_google, close_connection_google  # Google
+import numpy as np
 
 def merge_aws_google_batch_dos(batch_size=5000, page=1):
     """
-    Obtiene datos de Google Cloud SQL y AWS RDS en batches para evitar saturar Cloud Run.
-    Retorna un DataFrame de pandas con los datos combinados de la página solicitada.
+    Obtiene datos de Google Cloud SQL y AWS RDS en batches usando Python en lugar de SQL.
+    Retorna un DataFrame de pandas con los datos combinados del batch solicitado.
     """
-    offset = (page - 1) * batch_size
-
     # --- Conexión Google Cloud SQL ---
     conn_google = get_connection_google()
 
@@ -54,7 +53,7 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
     """
     ultima_columna = pd.read_sql(query_ultima_columna, conn_google).iloc[0, 0]
 
-    # 2️⃣ Obtener los datos de Google filtrados por la última columna
+    # 2️⃣ Obtener todos los datos de Google (sin LIMIT/OFFSET)
     query_google = f"""
        SELECT 
         CONCAT(Id_credito, '_', Id_cliente) AS id_original, 
@@ -76,10 +75,18 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
     WHERE 
         {ultima_columna} = 0
         OR (Saldo_Vencido_actualizado) <= 50
-    ORDER BY KT
+    ORDER BY KT;
     """
-    df_google = pd.read_sql(query_google, conn_google)
+    df_google_full = pd.read_sql(query_google, conn_google)
     close_connection_google(conn_google)
+
+    if df_google_full.empty:
+        return pd.DataFrame()  # página fuera de rango
+
+    # --- Dividir en batches usando pandas ---
+    start_idx = (page - 1) * batch_size
+    end_idx = start_idx + batch_size
+    df_google = df_google_full.iloc[start_idx:end_idx]
 
     if df_google.empty:
         return pd.DataFrame()  # página fuera de rango
@@ -122,7 +129,7 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
     return df_merged
 
 
-# 🔁 NUEVA FUNCIÓN: recorre todas las páginas automáticamente
+# 🔁 Función para recorrer todas las páginas automáticamente
 def merge_aws_google_full(batch_size=5000):
     page = 1
     all_data = []
