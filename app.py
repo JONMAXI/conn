@@ -507,21 +507,33 @@ def clientes_pago_corriente():
 @app.route("/download/clientes_pago_corriente")
 def download_clientes_pago_corriente():
     try:
-        # Aquí llamas a tu función que devuelve el DataFrame
-        df = merge_aws_google_full(batch_size=5000)  # Cambiar si hay función específica
-        output = BytesIO()
-        nombre_archivo = session.get("clientes_pago_corriente", f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
+        # 🚀 Trae todos los registros recorriendo todas las páginas
+        df = merge_aws_google_full(batch_size=5000)
 
+        # Si no hay datos, devuelve un mensaje amigable
+        if df.empty:
+            return jsonify({"message": "No se encontraron datos para generar el archivo"}), 400
+
+        output = BytesIO()
+        nombre_archivo = session.get(
+            "clientes_pago_corriente",
+            f"ClientesPagoCorriente_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+        )
+
+        # Crear Excel
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='ClientesPagoCorriente')
 
         output.seek(0)
+
+        # Enviar archivo
         return send_file(
             output,
             as_attachment=True,
             download_name=f"{nombre_archivo}.xlsx",
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
+
     except Exception as e:
         import traceback
         print(traceback.format_exc())
