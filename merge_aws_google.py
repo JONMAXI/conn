@@ -1,6 +1,7 @@
 import pandas as pd
 from db_connection import get_connection, close_connection          # AWS
 from db_connection_google import get_connection_google, close_connection_google  # Google
+import datetime
 
 def merge_aws_google_batch(batch_size=5000, page=1):
     """
@@ -150,6 +151,20 @@ def merge_aws_google_batch(batch_size=5000, page=1):
         LIMIT 1;
     """
     ultima_columna = pd.read_sql(query_ultima_columna, conn_google).iloc[0, 0]
+
+    # Determinar día de semana (lunes = 0)
+    es_lunes = datetime.datetime.now().weekday() == 0
+
+    # 2️⃣ Obtener los datos de Google filtrados por la última columna
+    if es_lunes:
+        # ✅ QUERY ESPECIAL PARA LUNES (aquí pones lo que quieras)
+        query_google = f"""
+            SELECT *
+            FROM tbl_segundometro_semana
+            WHERE 1 = 1
+            LIMIT {batch_size} OFFSET {offset};
+        """
+    else:
 
     # 2️⃣ Obtener los datos de Google filtrados por la última columna
     query_google = f"""
