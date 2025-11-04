@@ -159,9 +159,35 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     if es_lunes:
         # ✅ QUERY ESPECIAL PARA LUNES
         query_google = f"""
-            SELECT *
+             SELECT 
+                CONCAT(Id_credito, '_', Id_cliente) AS id_original, 
+                Celular AS Telefono, 
+                'Transferencia' AS fideicomiso, 
+                Id_cliente AS mkm,
+                Id_credito AS id_credit, 
+                nombre_cliente AS nombre, 
+                1 AS pagos_vencidos,
+                saldo_vencido_inicio AS monto_vencido,
+                '' AS bucket, 
+                '' AS fecha_de_pago, 
+                '' AS telefono_1,
+                'Transferencia' AS tipoo_de_pago, 
+                Referencia_stp AS clabe,
+                'STP' AS banco, 
+                '' AS atributo_segmento,
+
+                CASE 
+                    WHEN Fecha_primer_vencimiento >= DATE_ADD(CURDATE(), INTERVAL (2 - DAYOFWEEK(CURDATE())) DAY)
+                     AND Fecha_primer_vencimiento <  DATE_ADD(CURDATE(), INTERVAL (9 - DAYOFWEEK(CURDATE())) DAY)
+                    THEN 'Sí'
+                    ELSE ''
+                END AS primeros_pagos
+
             FROM tbl_segundometro_semana
-            WHERE 1 = 1
+            WHERE 
+                {ultima_columna} BETWEEN 1 AND 7
+                AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
+            ORDER BY KT
             LIMIT {batch_size} OFFSET {offset};
         """
     else:
