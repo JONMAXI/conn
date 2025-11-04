@@ -16,8 +16,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     # 1️⃣ Obtener el nombre de la última columna no nula
     query_ultima_columna = """
         SELECT nombre_columna
-        FROM (
-            -- Martes
+        FROM (-- Martes
             SELECT 'Dias_mora_Martes_07_30' AS nombre_columna, Dias_mora_Martes_07_30 AS valor,
                    STR_TO_DATE(CONCAT('2025-08-27 07:30'), '%Y-%m-%d %H:%i') AS fecha_real FROM tbl_segundometro_semana
             UNION ALL
@@ -150,6 +149,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
         ORDER BY fecha_real DESC
         LIMIT 1;
     """
+
     ultima_columna = pd.read_sql(query_ultima_columna, conn_google).iloc[0, 0]
 
     # Determinar día de semana (lunes = 0)
@@ -157,7 +157,7 @@ def merge_aws_google_batch(batch_size=5000, page=1):
 
     # 2️⃣ Obtener los datos de Google filtrados por la última columna
     if es_lunes:
-        # ✅ QUERY ESPECIAL PARA LUNES (aquí pones lo que quieras)
+        # ✅ QUERY ESPECIAL PARA LUNES
         query_google = f"""
             SELECT *
             FROM tbl_segundometro_semana
@@ -165,40 +165,40 @@ def merge_aws_google_batch(batch_size=5000, page=1):
             LIMIT {batch_size} OFFSET {offset};
         """
     else:
+        # ✅ QUERY NORMAL (la que tú ya tenías)
+        query_google = f"""
+            SELECT 
+                CONCAT(Id_credito, '_', Id_cliente) AS id_original, 
+                Celular AS Telefono, 
+                'Transferencia' AS fideicomiso, 
+                Id_cliente AS mkm,
+                Id_credito AS id_credit, 
+                nombre_cliente AS nombre, 
+                1 AS pagos_vencidos,
+                saldo_vencido_inicio AS monto_vencido,
+                '' AS bucket, 
+                '' AS fecha_de_pago, 
+                '' AS telefono_1,
+                'Transferencia' AS tipoo_de_pago, 
+                Referencia_stp AS clabe,
+                'STP' AS banco, 
+                '' AS atributo_segmento,
 
-    # 2️⃣ Obtener los datos de Google filtrados por la última columna
-    query_google = f"""
-       SELECT 
-        CONCAT(Id_credito, '_', Id_cliente) AS id_original, 
-        Celular AS Telefono, 
-        'Transferencia' AS fideicomiso, 
-        Id_cliente AS mkm,
-        Id_credito AS id_credit, 
-        nombre_cliente AS nombre, 
-        1 AS pagos_vencidos,
-        saldo_vencido_inicio AS monto_vencido,
-        '' AS bucket, 
-        '' AS fecha_de_pago, 
-        '' AS telefono_1,
-        'Transferencia' AS tipoo_de_pago, 
-        Referencia_stp AS clabe,
-        'STP' AS banco, 
-        '' AS atributo_segmento,
+                CASE 
+                    WHEN Fecha_primer_vencimiento >= DATE_ADD(CURDATE(), INTERVAL (2 - DAYOFWEEK(CURDATE())) DAY)
+                     AND Fecha_primer_vencimiento <  DATE_ADD(CURDATE(), INTERVAL (9 - DAYOFWEEK(CURDATE())) DAY)
+                    THEN 'Sí'
+                    ELSE ''
+                END AS primeros_pagos
 
-        CASE 
-            WHEN Fecha_primer_vencimiento >= DATE_ADD(CURDATE(), INTERVAL (2 - DAYOFWEEK(CURDATE())) DAY)
-             AND Fecha_primer_vencimiento <  DATE_ADD(CURDATE(), INTERVAL (9 - DAYOFWEEK(CURDATE())) DAY)
-            THEN 'Sí'
-            ELSE ''
-        END AS primeros_pagos
+            FROM tbl_segundometro_semana
+            WHERE 
+                {ultima_columna} BETWEEN 1 AND 7
+                AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
+            ORDER BY KT
+            LIMIT {batch_size} OFFSET {offset};
+        """
 
-    FROM tbl_segundometro_semana
-    WHERE 
-        {ultima_columna} BETWEEN 1 AND 7
-        AND Bucket_Morosidad_Real = 'b) 1 a 7 dias'
-    ORDER BY KT
-    LIMIT {batch_size} OFFSET {offset};
-    """
     df_google = pd.read_sql(query_google, conn_google)
     close_connection_google(conn_google)
 
@@ -217,13 +217,15 @@ def merge_aws_google_batch(batch_size=5000, page=1):
                CONCAT(p2.nombre_referencia1, ' ', p2.apellido_paterno_referencia1, ' ', p2.apellido_materno_referencia1) AS nombre_completo_referencia1,
                p2.telefono_referencia1,
                CONCAT(p2.nombre_referencia2, ' ', p2.apellido_paterno_referencia2, ' ', p2.apellido_materno_referencia2) AS nombre_completo_referencia2,
-               p2.telefono_referencia2, '' as nombre_referencia_3, '' as telefono_referencia_3, 0 as Motivo_de_no_Pago, 0 as cuando_le_pagan, 0 as Giro_de_Trabajo, 0 as hora_de_pago
-
+               p2.telefono_referencia2, '' as nombre_referencia_3, '' as telefono_referencia_3, 
+               0 as Motivo_de_no_Pago, 0 as cuando_le_pagan, 
+               0 as Giro_de_Trabajo, 0 as hora_de_pago
         FROM oferta o
         INNER JOIN persona p ON o.fk_persona = p.id_persona
         LEFT JOIN persona_adicionales p2 ON p2.fk_persona = p.id_persona
         WHERE o.id_oferta IN {ids_chunk}
     """
+
     df_aws = pd.read_sql(query_aws, conn_aws)
     close_connection(conn_aws)
 
@@ -232,10 +234,13 @@ def merge_aws_google_batch(batch_size=5000, page=1):
     df_aws['id_oferta'] = df_aws['id_oferta'].astype(str)
 
     # --- Merge LEFT ---
-    df_merged = pd.merge(df_google, df_aws,
-                         left_on='id_credit',
-                         right_on='id_oferta',
-                         how='left')
+    df_merged = pd.merge(
+        df_google,
+        df_aws,
+        left_on='id_credit',
+        right_on='id_oferta',
+        how='left'
+    )
 
     if 'id_oferta' in df_merged.columns:
         df_merged.drop(columns=['id_oferta'], inplace=True)
