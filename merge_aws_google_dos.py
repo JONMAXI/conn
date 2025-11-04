@@ -73,7 +73,10 @@ def merge_aws_google_batch_dos(batch_size=5000, page=1):
         '' AS atributo_segmento
     FROM tbl_segundometro_semana
     WHERE 
-        (Fecha_ultimo_pago_efectivo > CURDATE() OR Fecha_ultimo_pago_efectivo IS NULL)
+        ({ultima_columna} = 0
+        OR (Saldo_Vencido_actualizado) <= 50)
+        AND (Fecha_ultimo_pago_efectivo > CURDATE() OR Fecha_ultimo_pago_efectivo IS NULL);
+
     ORDER BY KT;
     """
     df_google_full = pd.read_sql(query_google, conn_google)
